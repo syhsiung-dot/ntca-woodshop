@@ -1,0 +1,2786 @@
+<!DOCTYPE html>
+<!-- VERSION: 20260310-2155 -->
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="木工教室">
+<meta name="theme-color" content="#0D0A06">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="木工教室">
+<meta name="description" content="國立臺灣戲曲學院 劇場藝術學系 木工教室出勤與危害告知管理系統">
+<!-- PWA Manifest (inline via JS, see bottom of file) -->
+<link rel="manifest" id="pwa-manifest">
+<!-- Apple Touch Icon (SVG → PNG via canvas, injected by JS) -->
+<link rel="apple-touch-icon" id="apple-touch-icon">
+<title>國立臺灣戲曲學院 · 木工教室管理系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════ */
+:root{
+  --gold:#F5C842;--gold-d:rgba(245,200,66,.4);--gold-f:rgba(245,200,66,.1);
+  --green:#34C759;--blue:#007AFF;--red:#E8340A;--orange:#FF9500;
+  --purple:#BF5AF2;--teal:#32ADE6;--yellow:#FFCC00;
+  --bg:#0D0A06;--bg2:#141008;--bg3:rgba(255,255,255,.03);--bg4:rgba(255,255,255,.06);
+  --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.04);
+  --tx:#FFF;--dim:rgba(255,255,255,.45);--faint:rgba(255,255,255,.2);
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+#app{width:100%;height:100%;display:flex;flex-direction:column;padding-top:var(--st);position:relative;overflow:hidden}
+
+/* ── Stage lights ── */
+.sl{position:fixed;top:-80px;pointer-events:none;z-index:0;width:400px;height:580px;transform:translateX(-50%)}
+.sl1{left:25%;background:conic-gradient(from 180deg at 50% 0%,transparent 74deg,rgba(245,200,66,.07) 90deg,rgba(245,200,66,.07) 90deg,transparent 106deg)}
+.sl2{left:75%;background:conic-gradient(from 180deg at 50% 0%,transparent 74deg,rgba(200,80,30,.05) 90deg,rgba(200,80,30,.05) 90deg,transparent 106deg)}
+
+/* ══════════════════════════════════════════
+   GLOBAL HEADER
+══════════════════════════════════════════ */
+.app-hdr{position:relative;z-index:20;flex-shrink:0;background:rgba(13,10,6,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(245,200,66,.1)}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:10px calc(16px + var(--sl)) 0}
+.hdr-brand{display:flex;align-items:center;gap:10px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse-a 2s ease-in-out infinite;flex-shrink:0}
+.brand-lbl{font-family:'Bebas Neue',cursive;font-size:10px;letter-spacing:3px;color:rgba(245,200,66,.5)}
+.brand-name{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--gold);line-height:1.1}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.clk{font-family:'Bebas Neue',cursive;font-size:30px;letter-spacing:3px;color:var(--gold);text-shadow:0 0 20px rgba(245,200,66,.3);line-height:1}
+.role-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;transition:all .2s;white-space:nowrap}
+
+/* ── Sub-tabs (admin) ── */
+.sub-tabs{display:flex;overflow-x:auto;padding:0 calc(12px + var(--sl));border-bottom:1px solid var(--bd);background:var(--bg3)}
+.sub-tabs::-webkit-scrollbar{display:none}
+.sub-tab{flex-shrink:0;padding:9px 14px;font-size:11px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.5px;white-space:nowrap}
+.sub-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* ══════════════════════════════════════════
+   CONTENT
+══════════════════════════════════════════ */
+.main{flex:1;overflow:hidden;position:relative;z-index:10}
+.page{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px calc(16px + var(--sl)) calc(16px + var(--sb));animation:fadeUp .22s ease}
+.page.active{display:block}
+.page::-webkit-scrollbar{display:none}
+
+/* ══════════════════════════════════════════
+   COMPONENTS
+══════════════════════════════════════════ */
+.card{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:12px}
+.card-ttl{font-size:10px;letter-spacing:3px;color:var(--faint);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-ttl span{flex:1;height:1px;background:var(--bd2)}
+.sec-hd{font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:2px;margin-bottom:14px}
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+@media(min-width:500px){.kpi-row{grid-template-columns:repeat(4,1fr)}}
+.kpi{border-radius:6px;padding:11px 10px}
+.kpi-n{font-family:'Bebas Neue',cursive;font-size:30px;letter-spacing:1px;line-height:1}
+.kpi-l{font-size:9px;color:var(--faint);letter-spacing:1px;margin-top:2px}
+.kpi-sub{font-size:10px;margin-top:3px;opacity:.7}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;border-radius:6px;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 10px;text-align:left;font-size:10px;letter-spacing:2px;color:var(--faint);border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--bd2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+.pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap}
+.avatar-sm{width:28px;height:28px;border-radius:50%;background:var(--bg4);border:1px solid var(--bd);display:inline-flex;align-items:center;justify-content:center;font-size:13px;vertical-align:middle;flex-shrink:0}
+
+/* Filter row */
+.f-row{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.f-inp{flex:1;min-width:100px;padding:8px 11px;background:var(--bg4);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-size:12px;outline:none;-webkit-appearance:none;font-family:'Noto Sans TC',sans-serif}
+.f-inp:focus{border-color:var(--gold-d)}
+.f-sel{padding:8px 10px;background:var(--bg4);border:1px solid var(--bd);border-radius:4px;color:var(--dim);font-size:11px;outline:none;cursor:pointer;-webkit-appearance:none;font-family:'Noto Sans TC',sans-serif}
+.f-btn{padding:8px 14px;background:linear-gradient(135deg,var(--gold),#E8A800);border:none;border-radius:4px;color:#000;font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'Noto Sans TC',sans-serif}
+.btn-ghost-sm{padding:8px 12px;background:var(--bg4);border:1px solid var(--bd);border-radius:4px;color:var(--dim);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.export-row{display:flex;gap:7px;margin-bottom:12px;justify-content:flex-end}
+.exp-btn{display:flex;align-items:center;gap:4px;padding:7px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;font-family:'Noto Sans TC',sans-serif}
+.exp-pdf{background:rgba(232,52,10,.1);border-color:rgba(232,52,10,.25);color:var(--red)}
+.exp-csv{background:rgba(52,199,89,.08);border-color:rgba(52,199,89,.2);color:var(--green)}
+
+/* Chart */
+.chart-bars{display:flex;align-items:flex-end;gap:3px;height:80px}
+.bar-grp{flex:1;display:flex;align-items:flex-end;gap:1px;height:100%}
+.bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;transition:height .5s cubic-bezier(.34,1.56,.64,1)}
+.chart-lbl-row{display:flex;justify-content:space-between;margin-top:4px}
+.chart-lbl{font-size:9px;color:var(--faint);text-align:center;flex:1}
+.legend-row{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim)}
+.leg-dot{width:7px;height:7px;border-radius:50%}
+
+/* Timeline */
+.tl{position:relative;padding-left:18px}
+.tl-line{position:absolute;left:5px;top:6px;bottom:0;width:1px;background:var(--bd)}
+.tl-item{position:relative;margin-bottom:12px}
+.tl-dot{position:absolute;left:-13px;top:4px;width:9px;height:9px;border-radius:50%;border:2px solid;background:var(--bg)}
+.tl-t{font-family:'Bebas Neue',cursive;font-size:10px;letter-spacing:2px;color:var(--faint)}
+.tl-n{font-size:13px;font-weight:700;margin-top:1px}
+.tl-m{font-size:11px;color:var(--dim);margin-top:1px}
+
+/* Compliance grid */
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.comp-item{border-radius:5px;padding:11px}
+.comp-val{font-size:13px;font-weight:800;margin-bottom:3px}
+.comp-lbl{font-size:11px;font-weight:600}
+.comp-note{font-size:10px;color:var(--faint);margin-top:2px}
+
+/* Student list */
+.stu-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--bd2)}
+.stu-row:last-child{border-bottom:none}
+.stu-av{width:38px;height:38px;border-radius:50%;background:var(--bg4);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;font-family:'Noto Serif TC',serif}
+.stu-info{flex:1;min-width:0}
+.stu-name{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:700}
+.stu-meta{font-size:10px;color:var(--dim);margin-top:2px}
+.stu-stats-row{display:flex;gap:10px;margin-top:3px;flex-wrap:wrap}
+.stu-stat{font-size:10px;color:var(--faint)}
+.stu-stat b{font-weight:700}
+.icon-btn{width:30px;height:30px;border-radius:5px;border:1px solid var(--bd);background:var(--bg4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+
+/* Hazard record */
+.haz-row{padding:11px 0;border-bottom:1px solid var(--bd2)}
+.haz-row:last-child{border-bottom:none}
+.haz-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.haz-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:rgba(245,200,66,.65);background:rgba(245,200,66,.06);border:1px solid rgba(245,200,66,.15);padding:2px 7px;border-radius:3px;margin-top:4px;margin-right:4px}
+
+/* Course cards */
+.course-card{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.course-stripe{position:absolute;left:0;top:0;bottom:0;width:3px}
+.course-name{font-size:15px;font-weight:800;margin-bottom:4px}
+.course-meta{font-size:11px;color:var(--dim);margin-bottom:8px}
+.course-stats{display:flex;gap:12px;flex-wrap:wrap}
+.course-stat{font-size:11px;color:var(--faint)}
+.course-stat b{color:var(--tx);font-weight:700}
+.course-actions{display:flex;gap:6px;margin-top:10px}
+.cact-btn{flex:1;padding:7px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Noto Sans TC',sans-serif;text-align:center}
+
+/* Report period tabs */
+.period-tabs{display:flex;gap:4px;margin-bottom:14px;background:var(--bg4);padding:3px;border-radius:6px}
+.period-tab{flex:1;padding:7px;text-align:center;font-size:12px;border-radius:4px;cursor:pointer;color:var(--dim);font-weight:600;transition:all .2s}
+.period-tab.active{background:linear-gradient(135deg,var(--gold),#E8A800);color:#000;font-weight:900}
+
+/* ══════════════════════════════════════════
+   CLOCK-IN FRONT-END STYLES
+══════════════════════════════════════════ */
+.act-grid{display:grid;gap:12px;margin-bottom:14px}
+@media(min-width:560px){.act-grid{grid-template-columns:1fr 1fr}}
+.act-btn{background:none;border:none;cursor:pointer;border-radius:6px;padding:26px 20px;text-align:left;position:relative;overflow:hidden;transition:transform .15s;width:100%;-webkit-user-select:none}
+.act-btn:active{transform:scale(.97)}
+.act-in{background:linear-gradient(145deg,#0C1F0C,#071407);border:1px solid rgba(52,199,89,.35)}
+.act-out{background:linear-gradient(145deg,#080E1F,#050914);border:1px solid rgba(0,122,255,.35)}
+.act-stripe{position:absolute;top:0;right:0;bottom:0;width:3px;border-radius:0 6px 6px 0}
+.act-title{font-family:'Bebas Neue',cursive;font-size:54px;letter-spacing:3px;line-height:1;margin-bottom:6px}
+.act-sub{font-size:11px;color:var(--dim);line-height:1.7}
+.act-note{font-size:10px;margin-top:3px}
+.haz-banner{background:rgba(232,52,10,.05);border:1px solid rgba(232,52,10,.2);border-left:3px solid var(--red);border-radius:4px;padding:11px 13px;display:flex;gap:11px;align-items:flex-start}
+.htags{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.htag{font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600}
+.inp-card{background:var(--bg3);border:1px solid var(--bd);border-radius:6px;padding:20px 16px}
+.inp-topbar{height:3px;border-radius:6px 6px 0 0;margin:-20px -16px 16px}
+.id-row{display:flex;gap:8px;margin-bottom:8px}
+.id-inp{flex:1;padding:12px 13px;background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:4px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.id-inp.ok{border-color:rgba(52,199,89,.5)}.id-inp.err{border-color:rgba(232,52,10,.5)}
+.srch-btn{padding:12px 16px;border:none;border-radius:4px;background:linear-gradient(135deg,var(--gold),#E8A800);color:#000;font-weight:900;font-size:13px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.stu-found{background:rgba(52,199,89,.06);border:1px solid rgba(52,199,89,.25);border-radius:4px;padding:13px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;animation:scaleIn .3s cubic-bezier(.34,1.56,.64,1)}
+.qpills{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.qpill{background:var(--bg4);border:1px solid var(--bd);border-radius:14px;padding:4px 12px;color:var(--dim);font-size:11px;cursor:pointer;-webkit-appearance:none}
+.btn-row{display:flex;gap:8px}
+.btn-g{flex:1;padding:11px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:4px;color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.btn-p{flex:2;padding:11px;border:none;border-radius:4px;font-size:13px;font-weight:900;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:opacity .2s}
+.btn-p:disabled{opacity:.3;cursor:not-allowed}
+.rec-item{display:flex;justify-content:space-between;align-items:center;border-left-width:2px;border-left-style:solid;padding:9px 0 9px 12px;border-bottom:1px solid var(--bd2)}
+.rec-item:last-child{border-bottom:none}
+.rec-thumb{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid;margin-left:7px}
+
+/* ══════════════════════════════════════════
+   MODAL SYSTEM
+══════════════════════════════════════════ */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(10,8,4,.95);backdrop-filter:blur(20px);display:flex;align-items:flex-end;justify-content:center;padding-bottom:var(--sb);animation:fadeIn .2s ease}
+@media(min-width:600px){.overlay{align-items:center;padding:20px}.modal-sheet{max-width:620px;border-radius:10px!important;max-height:88vh}}
+.modal-sheet{background:var(--bg2);width:100%;max-height:93vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s cubic-bezier(.34,1.2,.64,1)}
+.modal-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:8px auto 0}
+.modal-topbar{height:4px;background:linear-gradient(90deg,var(--red),var(--orange),var(--gold))}
+.modal-hd{padding:13px 18px 11px;border-bottom:1px solid var(--bd)}
+.modal-law{font-size:10px;letter-spacing:2px;color:var(--red);margin-bottom:2px}
+.modal-title{font-size:18px;font-weight:900;color:var(--gold)}
+.modal-sub{font-size:11px;color:var(--dim);margin-top:2px}
+.steps-bar{display:flex;gap:4px;margin-top:9px}
+.step-seg{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s}
+.step-seg.done{background:var(--green)}.step-seg.cur{background:var(--gold)}
+.modal-body{flex:1;overflow-y:auto;padding:14px 18px;-webkit-overflow-scrolling:touch}
+.modal-body::-webkit-scrollbar{display:none}
+.modal-foot{padding:11px 18px;border-top:1px solid var(--bd)}
+
+/* Hazard item */
+.hi{border-radius:4px;padding:12px;margin-bottom:9px;border-left:3px solid}
+.hi-head{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
+.hi-name{font-size:13px;font-weight:800}
+.hi-lv{font-size:10px;padding:2px 6px;border-radius:2px;font-weight:700;letter-spacing:.5px}
+.hi-code{font-size:10px;color:var(--faint);letter-spacing:1px;margin-left:auto}
+.hi-desc{font-size:11px;color:var(--dim);margin-bottom:8px;line-height:1.6}
+.hi-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hi-col-t{font-size:10px;color:var(--faint);letter-spacing:1px;margin-bottom:3px}
+.hi-col-i{font-size:11px;color:var(--dim);margin-bottom:2px}
+.ppe-i{font-size:11px;color:var(--green);margin-bottom:2px}
+.hi-law{font-size:10px;color:var(--faint);border-top:1px solid var(--bd2);padding-top:6px;margin-top:6px}
+
+/* Confirm / sig */
+.confirm-box{background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:12px 14px;margin-bottom:13px;font-size:12px;color:rgba(255,255,255,.65);line-height:1.8}
+.chk-list{display:flex;flex-direction:column;gap:8px;margin-bottom:13px}
+.chk-item{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.chk-box{width:21px;height:21px;border-radius:4px;flex-shrink:0;margin-top:1px;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;transition:all .2s;background:transparent;cursor:pointer}
+.chk-box.on{background:var(--green);border-color:var(--green)}
+.sig-inp{width:100%;padding:11px 13px;margin-bottom:12px;background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-size:19px;font-family:'Noto Serif TC',serif;letter-spacing:4px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.sig-inp.ok{border-color:rgba(52,199,89,.5)}
+.cam-box{width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:rgba(0,0,0,.4);border:1px solid var(--bd);position:relative;display:flex;align-items:center;justify-content:center}
+.cam-box video,.cam-box canvas{width:100%;height:100%;object-fit:cover;display:none}
+.cam-ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--faint)}
+.cam-badge{position:absolute;top:8px;right:8px;background:rgba(52,199,89,.9);color:#fff;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:700}
+.cam-ctrls{display:flex;gap:7px;margin-top:8px}
+.cbtn{flex:1;padding:10px;border-radius:4px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.cbtn-start{background:linear-gradient(135deg,var(--gold),#E8A800);color:#000}
+.cbtn-shoot{background:linear-gradient(135deg,var(--red),#C42A08);color:#fff}
+.cbtn-retry{background:var(--bg4);color:var(--dim);border:1px solid var(--bd)}
+
+/* Flash */
+.flash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:pointer}
+.flash-word{font-family:'Bebas Neue',cursive;letter-spacing:8px;line-height:1;margin-bottom:12px;animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1)}
+.flash-name{font-family:'Noto Serif TC',serif;font-size:24px;font-weight:700;letter-spacing:3px;animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1) .05s both}
+.flash-detail{font-size:13px;color:var(--dim);letter-spacing:2px;margin-top:3px;animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1) .1s both}
+.flash-time{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:4px;margin-top:14px;animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1) .15s both}
+.flash-haz{font-size:10px;letter-spacing:2px;margin-top:7px;color:rgba(245,200,66,.55)}
+.flash-photo{width:82px;height:82px;border-radius:50%;object-fit:cover;border:3px solid;margin-bottom:14px;animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1)}
+
+/* Drawer */
+.drawer-bg{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);animation:fadeIn .2s}
+.drawer{position:fixed;bottom:0;left:0;right:0;z-index:301;background:var(--bg2);border-radius:16px 16px 0 0;border-top:1px solid var(--bd);padding:16px 18px calc(18px + var(--sb));max-height:84vh;overflow-y:auto;animation:slideUp .28s cubic-bezier(.34,1.2,.64,1)}
+@media(min-width:600px){.drawer{left:auto;right:18px;bottom:18px;width:390px;border-radius:8px;animation:slideIn .28s cubic-bezier(.34,1.2,.64,1)}}
+.drw-handle{width:34px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 14px}
+.drw-ttl{font-size:15px;font-weight:900;color:var(--gold);margin-bottom:14px}
+.drw-lbl{font-size:10px;color:var(--faint);letter-spacing:1px;margin-bottom:5px}
+.drw-inp{width:100%;padding:10px 12px;background:var(--bg4);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-size:13px;outline:none;margin-bottom:10px;-webkit-appearance:none;font-family:'Noto Sans TC',sans-serif;transition:border-color .2s}
+.drw-inp:focus{border-color:var(--gold-d)}
+.drw-row{display:flex;gap:8px}
+.drw-save{flex:2;padding:11px;background:linear-gradient(135deg,var(--gold),#E8A800);border:none;border-radius:4px;color:#000;font-size:13px;font-weight:900;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.drw-cancel{flex:1;padding:11px;background:transparent;border:1px solid var(--bd);border-radius:4px;color:var(--dim);font-size:13px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.drw-danger{margin-top:10px;width:100%;padding:10px;background:rgba(232,52,10,.1);border:1px solid rgba(232,52,10,.25);border-radius:4px;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+
+/* Login */
+.login-full{position:fixed;inset:0;z-index:500;background:rgba(10,8,4,.98);backdrop-filter:blur(24px);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:var(--bg2);border:1px solid rgba(245,200,66,.2);border-radius:8px;width:100%;max-width:360px;overflow:hidden;animation:scaleIn .35s cubic-bezier(.34,1.56,.64,1)}
+.login-tb{height:4px;background:linear-gradient(90deg,var(--red),var(--orange),var(--gold))}
+.login-body{padding:24px 22px}
+.login-lbl{font-size:10px;color:var(--faint);letter-spacing:1px;margin-bottom:5px}
+.login-inp{width:100%;padding:11px 13px;background:var(--bg4);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-size:14px;outline:none;margin-bottom:11px;-webkit-appearance:none;font-family:'Noto Sans TC',sans-serif;transition:border-color .2s}
+.login-inp:focus{border-color:var(--gold-d)}
+.role-btns{display:flex;gap:6px;margin-bottom:18px}
+.role-btn{flex:1;padding:8px 6px;background:var(--bg4);border:1px solid var(--bd);border-radius:4px;color:var(--dim);font-size:11px;cursor:pointer;text-align:center;font-family:'Noto Sans TC',sans-serif;transition:all .2s}
+.role-btn.sel{border-color:var(--gold-d);color:var(--gold);background:var(--gold-f)}
+.login-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),#E8A800);border:none;border-radius:4px;color:#000;font-size:14px;font-weight:900;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+
+/* Toast */
+.toast{position:fixed;bottom:calc(72px + var(--sb));left:50%;transform:translateX(-50%) translateY(16px);background:rgba(28,26,22,.96);border:1px solid var(--bd);border-radius:6px;padding:9px 16px;font-size:12px;color:var(--tx);pointer-events:none;z-index:999;opacity:0;transition:all .28s;white-space:nowrap;backdrop-filter:blur(12px)}
+@keyframes gps-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.gps-scanning{animation:gps-pulse 1.4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── PWA Install Banner ── */
+.install-banner{position:fixed;bottom:0;left:0;right:0;z-index:500;padding:14px calc(16px + var(--sl)) calc(14px + var(--sb));background:rgba(13,10,6,.97);border-top:1px solid rgba(245,200,66,.25);backdrop-filter:blur(20px);display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.install-banner.show{transform:translateY(0)}
+.install-icon{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#1a1508,#2a200a);border:1px solid rgba(245,200,66,.3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.install-text{flex:1;min-width:0}
+.install-title{font-size:13px;font-weight:900;color:var(--gold);letter-spacing:.5px;margin-bottom:2px}
+.install-sub{font-size:11px;color:var(--dim);line-height:1.4}
+.install-btn{padding:9px 16px;background:linear-gradient(135deg,var(--gold),#E8A800);border:none;border-radius:8px;color:#000;font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'Noto Sans TC',sans-serif;flex-shrink:0}
+.install-close{width:28px;height:28px;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:50%;color:var(--faint);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* iOS install guide overlay */
+.ios-guide{position:fixed;inset:0;z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 20px calc(20px + var(--sb))}
+.ios-guide-bg{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px)}
+.ios-guide-card{position:relative;z-index:1;background:rgba(20,16,8,.98);border:1px solid rgba(245,200,66,.3);border-radius:16px;padding:22px 20px;width:100%;max-width:380px}
+.ios-guide-title{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--gold);margin-bottom:12px;text-align:center}
+.ios-step{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:13px;line-height:1.5;color:var(--dim)}
+.ios-step-n{width:22px;height:22px;border-radius:50%;background:var(--gold);color:#000;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.ios-close-btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--gold),#E8A800);border:none;border-radius:8px;color:#000;font-weight:900;font-size:14px;cursor:pointer;margin-top:4px;font-family:'Noto Sans TC',sans-serif}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Animations ── */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideIn{from{transform:translateX(110%)}to{transform:translateX(0)}}
+@keyframes scaleIn{from{transform:scale(.72);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes rowIn{from{transform:translateX(-7px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes pulse-a{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes blink{50%{opacity:.06}}
+
+/* ── Tablet optimizations ── */
+@media(min-width:768px){
+  .page{padding:20px calc(28px + var(--sl)) calc(16px + var(--sb))}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .two-col .card{margin-bottom:0}
+  .act-title{font-size:62px}
+  .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+}
+@media(min-width:1024px){
+  .page{padding:24px calc(44px + var(--sl)) calc(20px + var(--sb))}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="sl sl1"></div><div class="sl sl2"></div>
+
+<!-- ══ LOGIN ══ -->
+<div class="login-full" id="LOGIN">
+  <div class="login-card">
+    <div class="login-tb"></div>
+    <div class="login-body">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:42px">🎭</div>
+        <div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--gold);margin-top:5px">國立臺灣戲曲學院</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">劇場藝術學系 · 木工教室管理系統</div>
+      </div>
+      <div class="login-lbl">使用者角色</div>
+      <div class="role-btns">
+        <div class="role-btn sel" id="rb-teacher" onclick="selRole('teacher')">👩‍🏫 教師</div>
+        <div class="role-btn" id="rb-admin" onclick="selRole('admin')">🛡️ 管理員</div>
+        <div class="role-btn" id="rb-student" onclick="selRole('student')">🪚 學生打卡</div>
+      </div>
+      <div class="login-lbl">帳號</div>
+      <input class="login-inp" id="l-user" type="text" placeholder="請輸入帳號" autocomplete="off">
+      <div class="login-lbl" id="l-pass-row">密碼</div>
+      <input class="login-inp" id="l-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="login-btn" onclick="doLogin()">進入系統</button>
+      <div style="font-size:10px;color:var(--faint);text-align:center;margin-top:10px;line-height:1.9">
+        學生打卡模式無需密碼
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP HEADER ══ -->
+<div class="app-hdr">
+  <div class="hdr-top">
+    <div class="hdr-brand">
+      <div class="live-dot"></div>
+      <div>
+        <div class="brand-lbl">NTCA · WOODSHOP</div>
+        <div class="brand-name">木工教室管理系統</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="clk" id="CLK">00:00</div>
+      <div class="role-chip" id="ROLE-CHIP" style="background:var(--gold-f);border-color:var(--gold-d);color:var(--gold)">
+        <span id="role-ic">👩‍🏫</span><span id="role-nm">教師</span>
+      </div>
+      <div id="LOGOUT-BTN" onclick="doLogout()" style="display:none;align-items:center;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(232,52,10,.35);background:rgba(232,52,10,.08);color:rgba(232,52,10,.85);white-space:nowrap;transition:all .2s" onmouseenter="this.style.background='rgba(232,52,10,.18)'" onmouseleave="this.style.background='rgba(232,52,10,.08)'">
+        🚪 登出
+      </div>
+    </div>
+  </div>
+  <!-- Admin sub-tabs -->
+  <div class="sub-tabs" id="SUB-TABS" style="display:none">
+    <div class="sub-tab active" id="st-dash" onclick="switchSub('dash')">📊 總覽</div>
+    <div class="sub-tab" id="st-report" onclick="switchSub('report')">📈 統計報表</div>
+    <div class="sub-tab" id="st-attend" onclick="switchSub('attend')">📋 出勤紀錄</div>
+    <div class="sub-tab" id="st-hazard" onclick="switchSub('hazard')">⚠️ 危害告知</div>
+    <div class="sub-tab" id="st-students" onclick="switchSub('students')">👥 學生管理</div>
+    <div class="sub-tab" id="st-courses" onclick="switchSub('courses')">🎭 展演製作</div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main" id="MAIN">
+
+  <!-- ─── CLOCKIN FRONT END ─── -->
+  <div class="page active" id="page-clockin">
+    <div id="ci-home">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px">
+        <div class="kpi" style="background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.2)"><div class="kpi-n" style="color:var(--green)" id="ci-s-in">0</div><div class="kpi-l">上工</div></div>
+        <div class="kpi" style="background:rgba(0,122,255,.08);border:1px solid rgba(0,122,255,.2)"><div class="kpi-n" style="color:var(--blue)" id="ci-s-out">0</div><div class="kpi-l">下工</div></div>
+        <div class="kpi" style="background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.2)"><div class="kpi-n" style="color:var(--gold)" id="ci-s-haz">0</div><div class="kpi-l">告知</div></div>
+        <div class="kpi" style="background:rgba(191,90,242,.08);border:1px solid rgba(191,90,242,.2)"><div class="kpi-n" style="color:var(--purple)" id="ci-s-pres">0</div><div class="kpi-l">在場</div></div>
+      </div>
+      <!-- ─ 演出製作選擇 ─ -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:10px;letter-spacing:2px;color:var(--faint);margin-bottom:8px">🎭 PRODUCTION · 選擇演出製作後方可打卡</div>
+        <div id="ci-prod-pills" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px"></div>
+        <div id="ci-prod-warn" style="display:none;margin-top:8px;padding:8px 11px;background:rgba(232,52,10,.08);border:1px solid rgba(232,52,10,.25);border-left:3px solid var(--red);border-radius:4px;font-size:11px;color:rgba(232,52,10,.85)">⚠ 請先選擇演出製作項目才能打卡</div>
+      </div>
+      <div class="act-grid">
+        <button class="act-btn act-in" onclick="ciStart('in')">
+          <div class="act-stripe" style="background:var(--green)"></div>
+          <div class="act-title" style="color:var(--green);text-shadow:0 0 28px rgba(52,199,89,.3)">上工</div>
+          <div class="act-sub">CLOCK IN<div class="act-note" style="color:rgba(245,200,66,.55)">⚠ 須完成五類危害告知</div></div>
+        </button>
+        <button class="act-btn act-out" onclick="ciStart('out')">
+          <div class="act-stripe" style="background:var(--blue)"></div>
+          <div class="act-title" style="color:var(--blue);text-shadow:0 0 28px rgba(0,122,255,.3)">下工</div>
+          <div class="act-sub">CLOCK OUT<div class="act-note" style="color:rgba(0,122,255,.5)">記錄出勤時數</div></div>
+        </button>
+      </div>
+      <div class="haz-banner">
+        <div style="font-size:22px;flex-shrink:0;margin-top:2px">⚠️</div>
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--red);margin-bottom:4px">本教室五類危害 · 職安法第26條</div>
+          <div class="htags">
+            <span class="htag" style="background:rgba(232,52,10,.12);color:var(--red);border:1px solid rgba(232,52,10,.25)">⚡ 物理性</span>
+            <span class="htag" style="background:rgba(255,149,0,.12);color:var(--orange);border:1px solid rgba(255,149,0,.25)">🧪 化學性</span>
+            <span class="htag" style="background:rgba(50,173,230,.12);color:var(--teal);border:1px solid rgba(50,173,230,.25)">🦠 生物性</span>
+            <span class="htag" style="background:rgba(191,90,242,.12);color:var(--purple);border:1px solid rgba(191,90,242,.25)">🧠 人因</span>
+            <span class="htag" style="background:rgba(255,204,0,.12);color:var(--yellow);border:1px solid rgba(255,204,0,.25)">🪚 意外</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:10px;letter-spacing:3px;color:var(--faint);margin-bottom:9px">今日紀錄</div>
+        <div id="ci-rec-list"><div style="text-align:center;padding:20px;font-size:11px;color:var(--faint)">尚無打卡紀錄</div></div>
+      </div>
+    </div>
+    <div id="ci-input" style="display:none">
+      <div class="inp-card">
+        <div class="inp-topbar" id="ci-topbar"></div>
+        <div style="font-size:10px;letter-spacing:3px;margin-bottom:5px" id="ci-lbl"></div>
+        <div id="ci-prod-badge" style="display:inline-block;margin-bottom:10px;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;background:rgba(245,200,66,.12);border:1px solid rgba(245,200,66,.3);color:var(--gold)"></div>
+        <!-- GPS 位置狀態 -->
+        <div id="ci-gps-bar" style="margin-bottom:14px;padding:10px 12px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid var(--bd);display:flex;align-items:center;gap:10px">
+          <div id="ci-gps-icon" style="font-size:20px;flex-shrink:0">📍</div>
+          <div style="flex:1;min-width:0">
+            <div id="ci-gps-label" style="font-size:11px;font-weight:700;color:var(--dim)">正在取得位置…</div>
+            <div id="ci-gps-sub" style="font-size:10px;color:var(--faint);margin-top:2px">需要位置權限以驗證打卡地點</div>
+          </div>
+          <div id="ci-gps-badge" style="font-size:10px;font-weight:900;padding:3px 9px;border-radius:10px;white-space:nowrap;background:rgba(255,255,255,.06);color:var(--faint)">—</div>
+        </div>
+        <div style="font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;margin-bottom:16px">請輸入學號</div>
+        <div class="id-row">
+          <input class="id-inp" id="ci-id" type="text" inputmode="text" placeholder="e.g. T11301" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter')ciSearch()">
+          <button class="srch-btn" onclick="ciSearch()">查詢</button>
+        </div>
+        <div id="ci-err" style="font-size:11px;color:var(--red);margin-bottom:8px;display:none"></div>
+        <div class="stu-found" id="ci-found" style="display:none">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;color:rgba(52,199,89,.6);margin-bottom:3px">學籍資料確認</div>
+            <div style="font-family:'Noto Serif TC',serif;font-size:22px;font-weight:700;letter-spacing:2px" id="ci-sname"></div>
+            <div style="font-size:11px;color:var(--dim);margin-top:3px" id="ci-smeta"></div>
+          </div>
+          <div style="font-family:'Bebas Neue',cursive;font-size:40px;color:rgba(52,199,89,.2)">✓</div>
+        </div>
+        <div style="font-size:9px;color:var(--faint);letter-spacing:2px;margin-bottom:6px">快速選擇學生</div>
+        <div class="qpills" id="ci-pills"></div>
+
+        <!-- 下工工作日誌（僅下工時顯示） -->
+        <div id="ci-worklog-box" style="display:none;margin-top:14px">
+          <div style="font-size:10px;letter-spacing:2px;color:rgba(0,122,255,.7);margin-bottom:6px;font-weight:700">📝 今日工作紀錄</div>
+          <textarea id="ci-worklog"
+            placeholder="請簡述今日完成的工作內容，例如：組裝平台框架、砂磨地板板材、安裝螺絲固定件…"
+            rows="4"
+            style="width:100%;padding:10px 12px;background:rgba(0,122,255,.05);border:1px solid rgba(0,122,255,.25);border-radius:6px;color:var(--tx);font-size:13px;font-family:'Noto Sans TC',sans-serif;resize:vertical;outline:none;line-height:1.7;box-sizing:border-box;transition:border-color .2s"
+            onfocus="this.style.borderColor='rgba(0,122,255,.6)'"
+            onblur="this.style.borderColor='rgba(0,122,255,.25)'"
+            oninput="ciCheckWorklog()"></textarea>
+          <div id="ci-worklog-hint" style="font-size:10px;color:var(--faint);margin-top:4px;text-align:right">至少輸入 5 個字</div>
+
+          <!-- 工作照片上傳（非強制） -->
+          <div style="margin-top:12px">
+            <div style="font-size:10px;letter-spacing:2px;color:rgba(0,122,255,.7);margin-bottom:8px;font-weight:700">📷 工作照片 <span style="font-weight:400;color:var(--faint)">（選填）</span></div>
+            <div id="ci-wphoto-box" style="border:1.5px dashed rgba(0,122,255,.25);border-radius:8px;overflow:hidden;background:rgba(0,122,255,.03)">
+              <!-- 預覽區 -->
+              <div id="ci-wphoto-preview" style="display:none;position:relative">
+                <img id="ci-wphoto-img" style="width:100%;max-height:200px;object-fit:cover;display:block">
+                <button onclick="ciRemoveWPhoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:28px;height:28px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+                <div id="ci-wphoto-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+                  <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
+                  <div style="font-size:11px;color:#fff">上傳中…</div>
+                </div>
+              </div>
+              <!-- 選取按鈕 -->
+              <div id="ci-wphoto-btns" style="padding:14px;display:flex;gap:8px;align-items:center;justify-content:center">
+                <button onclick="ciWPhotoCam()" style="flex:1;padding:10px;background:rgba(0,122,255,.08);border:1px solid rgba(0,122,255,.2);border-radius:6px;color:rgba(0,122,255,.8);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📷 拍照</button>
+                <label style="flex:1">
+                  <div style="padding:10px;background:rgba(0,122,255,.08);border:1px solid rgba(0,122,255,.2);border-radius:6px;color:rgba(0,122,255,.8);font-size:12px;font-weight:700;cursor:pointer;text-align:center">🖼 相簿選取</div>
+                  <input type="file" accept="image/*" style="display:none" onchange="ciWPhotoFile(this)">
+                </label>
+              </div>
+            </div>
+            <div id="ci-wphoto-status" style="font-size:10px;color:var(--faint);margin-top:4px;text-align:right"></div>
+          </div>
+          <!-- 隱藏相機 -->
+          <video id="ci-wcam-v" autoplay playsinline muted style="display:none;width:100%;border-radius:6px;margin-top:8px"></video>
+          <canvas id="ci-wcam-c" style="display:none"></canvas>
+          <div id="ci-wcam-btns" style="display:none;gap:8px;margin-top:6px">
+            <button onclick="ciWShoot()" style="flex:1;padding:9px;background:linear-gradient(135deg,#007AFF,#0051D5);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🔴 拍照</button>
+            <button onclick="ciWCamCancel()" style="padding:9px 14px;background:rgba(255,255,255,.07);border:1px solid var(--bd);border-radius:6px;color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit">取消</button>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn-g" onclick="ciGoHome()">取消</button>
+          <button class="btn-p" id="ci-conf" disabled onclick="ciConfirm()">繼續</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ADMIN: DASHBOARD ─── -->
+  <div class="page" id="page-dash">
+    <div class="kpi-row" id="adm-kpi"></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-ttl">本週出勤趨勢 <span></span></div>
+        <div class="chart-bars" id="adm-chart"></div>
+        <div class="chart-lbl-row" id="adm-chart-lbl"></div>
+        <div class="legend-row">
+          <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>上工</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div>下工</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--gold)"></div>危害告知</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">今日動態 <span></span></div>
+        <div class="tl" id="adm-tl"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-ttl">職安法第26條合規狀態 <span></span></div>
+      <div class="comp-grid" id="adm-comp"></div>
+    </div>
+
+    <!-- 資料管理 -->
+    <div class="card" style="margin-top:12px;border-color:rgba(232,52,10,.2)">
+      <div class="card-ttl" style="color:rgba(232,52,10,.7)">⚠ 資料管理 <span></span></div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:14px;line-height:1.8">
+        以下操作將永久清除資料，執行前請確認。系統重新整理後資料亦會重置（目前為展示版，尚未串接資料庫）。
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px">🗂 清除今日打卡紀錄</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.6">清除今天所有上工／下工記錄，歸零今日統計</div>
+          <button onclick="resetToday()" style="width:100%;padding:8px;background:rgba(232,52,10,.12);border:1px solid rgba(232,52,10,.3);border-radius:6px;color:rgba(232,52,10,.9);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">清除今日紀錄</button>
+        </div>
+        <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:8px;padding:14px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px">📋 清除全部出勤紀錄</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.6">清除所有出勤與危害告知歷史資料，完全歸零</div>
+          <button onclick="resetAll()" style="width:100%;padding:8px;background:rgba(232,52,10,.12);border:1px solid rgba(232,52,10,.3);border-radius:6px;color:rgba(232,52,10,.9);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">清除全部紀錄</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ADMIN: REPORT ─── -->
+  <div class="page" id="page-report">
+    <div class="sec-hd">出勤統計報表</div>
+
+    <!-- 報表維度切換 -->
+    <div class="period-tabs" style="margin-bottom:10px">
+      <div class="period-tab active" id="rmode-sem"  onclick="switchRepMode('sem')" >依學期</div>
+      <div class="period-tab"        id="rmode-prod" onclick="switchRepMode('prod')">依演出製作</div>
+    </div>
+
+    <!-- 學期篩選（預設顯示） -->
+    <div id="rep-sem-filter">
+      <div class="f-row">
+        <select class="f-sel" id="rep-sem-sel" onchange="renderReport()" style="flex:1;font-size:13px">
+          <option value="114-2">114 學年  第 2 學期</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 演出製作篩選（預設隱藏） -->
+    <div id="rep-prod-filter" style="display:none">
+      <div class="f-row">
+        <select class="f-sel" id="rep-prod-sel" onchange="renderReport()" style="flex:1;font-size:13px">
+          <option value="">全部製作</option>
+        </select>
+        <select class="f-sel" id="rep-prod-sem" onchange="renderReport()">
+          <option value="">全部學期</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 報表標題 -->
+    <div id="rep-scope-label" style="font-size:11px;color:rgba(245,200,66,.7);letter-spacing:1px;margin-bottom:10px;padding:7px 11px;background:rgba(245,200,66,.05);border-left:2px solid var(--gold);border-radius:3px"></div>
+
+    <div class="kpi-row" id="rep-kpi"></div>
+
+    <div class="card">
+      <div class="card-ttl">各學生出勤時數 <span></span></div>
+      <div id="rep-hours"></div>
+    </div>
+    <div class="card">
+      <div class="card-ttl">每日上工時數統計 <span id="rep-daily-label" style="font-size:10px;color:var(--dim);font-weight:400"></span></div>
+      <div id="rep-daily-hours"></div>
+    </div>
+    <div class="card">
+      <div class="card-ttl">危害告知合規率 <span></span></div>
+      <div id="rep-haz-rate"></div>
+    </div>
+    <div class="card">
+      <div class="card-ttl">課程 · 製作出勤分布 <span></span></div>
+      <div id="rep-by-course"></div>
+    </div>
+    <div class="card">
+      <div class="card-ttl">個人工時彙總
+        <span id="rep-summary-label" style="font-size:10px;color:var(--dim);font-weight:400"></span>
+      </div>
+      <div id="rep-summary"></div>
+    </div>
+
+    <div class="export-row" style="margin-top:4px">
+      <button class="exp-btn exp-pdf" onclick="toast('📄 PDF報表產生中…（部署版功能）')">📄 匯出PDF報表</button>
+      <button class="exp-btn exp-csv" onclick="exportReportCSV()">📊 匯出明細CSV</button>
+      <button class="exp-btn exp-csv" style="background:rgba(245,200,66,.15);border-color:rgba(245,200,66,.4);color:var(--gold)" onclick="exportSummaryCSV()">📋 匯出個人工時彙總</button>
+    </div>
+  </div>
+
+  <!-- ─── ADMIN: ATTEND ─── -->
+  <div class="page" id="page-attend">
+    <div class="sec-hd">出勤紀錄查詢</div>
+    <div class="f-row">
+      <input class="f-inp" placeholder="🔍 姓名或學號" id="att-q" oninput="renderAttend()">
+      <select class="f-sel" id="att-type" onchange="renderAttend()">
+        <option value="">全部</option><option value="in">上工</option><option value="out">下工</option>
+      </select>
+      <select class="f-sel" id="att-day" onchange="renderAttend()">
+        <option value="0">今日</option><option value="7">近7天</option><option value="30">近30天</option>
+      </select>
+    </div>
+    <div class="export-row">
+      <button class="exp-btn exp-pdf" onclick="toast('📄 匯出中…（部署版功能）')">📄 PDF</button>
+      <button class="exp-btn exp-csv" onclick="exportCSV()">📊 CSV</button>
+    </div>
+    <div class="tbl-wrap"><table><thead><tr><th>照片</th><th>姓名</th><th>學號</th><th>年級·組別</th><th>類型</th><th>時間</th><th>危害告知</th><th>GPS 位置</th><th>工作日誌</th><th>工作照片</th></tr></thead><tbody id="att-body"></tbody></table></div>
+    <div id="att-sum" style="font-size:11px;color:var(--faint);text-align:right;margin-top:6px"></div>
+  </div>
+
+  <!-- ─── ADMIN: HAZARD ─── -->
+  <div class="page" id="page-hazard">
+    <div class="sec-hd">危害告知簽收紀錄</div>
+    <div style="background:rgba(245,200,66,.06);border:1px solid rgba(245,200,66,.2);border-left:3px solid var(--gold);border-radius:4px;padding:11px 13px;margin-bottom:12px;font-size:11px;color:rgba(245,200,66,.8);line-height:1.7">
+      📋 依<strong>職安法第26條</strong>，危害告知紀錄須保存 <strong>3年</strong>，供勞動檢查機關查驗。
+    </div>
+    <div class="f-row">
+      <input class="f-inp" placeholder="🔍 搜尋姓名" id="haz-q" oninput="renderHazard()">
+      <select class="f-sel" id="haz-st" onchange="renderHazard()">
+        <option value="">全部</option><option value="ok">已確認</option><option value="no">未確認</option>
+      </select>
+    </div>
+    <div class="export-row">
+      <button class="exp-btn exp-pdf" onclick="toast('📄 告知清冊PDF產生中…（部署版功能）')">📄 匯出告知清冊</button>
+    </div>
+    <div class="card" id="haz-list"></div>
+    <div id="haz-sum" style="font-size:11px;color:var(--faint);text-align:right;margin-top:6px"></div>
+  </div>
+
+  <!-- ─── ADMIN: STUDENTS ─── -->
+  <div class="page" id="page-students">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="sec-hd" style="margin-bottom:0">學生名單管理</div>
+      <div style="display:flex;gap:8px">
+        <button class="f-btn" style="background:rgba(255,59,48,.1);color:var(--red);border-color:rgba(255,59,48,.25)" onclick="resetDefaultStudents()">↺ 重設預設資料</button>
+        <button class="f-btn" id="stu-add-btn" onclick="openDrawer('stu',null)">＋ 新增</button>
+      </div>
+    </div>
+    <div class="f-row">
+      <input class="f-inp" placeholder="🔍 姓名或學號" id="stu-q" oninput="renderStudents()">
+      <select class="f-sel" id="stu-grade" onchange="renderStudents()"><option value="">全部年級</option><option>大一戊</option><option>大二戊</option><option>大三戊</option><option>大四戊</option></select>
+      <select class="f-sel" id="stu-role" onchange="renderStudents()"><option value="">全部組別</option><option>舞台組</option><option>燈光組</option><option>服裝組</option><option>音響組</option></select>
+    </div>
+    <div class="card" id="stu-list"></div>
+  </div>
+
+  <!-- ─── ADMIN: COURSES ─── -->
+  <div class="page" id="page-courses">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="sec-hd" style="margin-bottom:0">課程 · 展演製作管理</div>
+      <button class="f-btn" onclick="openDrawer('course',null)">＋ 新增課程</button>
+    </div>
+
+    <!-- 演出製作管理 -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-ttl" style="margin-bottom:10px">🎭 演出製作項目管理 <span></span>
+        <button onclick="openDrawer('prod',null)" style="margin-left:auto;padding:3px 10px;background:linear-gradient(135deg,var(--gold),#E8A800);border:none;border-radius:3px;color:#000;font-size:10px;font-weight:900;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap">＋ 新增製作</button>
+      </div>
+      <div id="prod-chip-list" style="display:flex;flex-wrap:wrap;gap:7px;min-height:28px">
+        <div style="font-size:11px;color:var(--faint);padding:6px 0">載入中…</div>
+      </div>
+    </div>
+    <div class="f-row">
+      <input class="f-inp" placeholder="🔍 搜尋課程或教師" id="crs-q" oninput="renderCourses()">
+      <select class="f-sel" id="crs-sem" onchange="renderCourses()">
+        <option value="">全部學期</option>
+      </select>
+      <select class="f-sel" id="crs-prod" onchange="renderCourses()">
+        <option value="">全部製作</option>
+      </select>
+      <select class="f-sel" id="crs-status" onchange="renderCourses()">
+        <option value="">全部狀態</option><option value="active">進行中</option><option value="ended">已結束</option>
+      </select>
+    </div>
+    <div id="crs-list"></div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══ HAZARD MODAL ══ -->
+<div class="overlay" id="HAZ-MODAL" style="display:none">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-topbar"></div>
+    <div class="modal-hd">
+      <div class="modal-law">⚠ 職業安全衛生法第26條 · 事前危害告知義務</div>
+      <div class="modal-title">木工教室展演製作課 · 五類危害告知</div>
+      <div class="modal-sub" id="hm-sub"></div>
+      <div class="steps-bar" id="hm-steps"></div>
+    </div>
+    <div class="modal-body" id="hm-body"></div>
+    <div class="modal-foot" id="hm-foot"></div>
+  </div>
+</div>
+
+<!-- ══ FLASH ══ -->
+<div class="flash" id="FLASH" style="display:none" onclick="flashDismiss()">
+  <img id="fl-photo" class="flash-photo" style="display:none">
+  <div class="flash-word" id="fl-word"></div>
+  <div class="flash-name" id="fl-name"></div>
+  <div class="flash-detail" id="fl-detail"></div>
+  <div class="flash-time" id="fl-time"></div>
+  <div class="flash-haz" id="fl-haz"></div>
+  <div style="font-size:10px;color:rgba(255,255,255,.18);letter-spacing:1px;margin-top:20px">點擊任意處關閉</div>
+</div>
+
+<!-- ══ DRAWER ══ -->
+<div id="DRW-BG" style="display:none" onclick="closeDrawer()">
+  <div class="drawer-bg"></div>
+  <div class="drawer" onclick="event.stopPropagation()" id="DRW">
+    <div class="drw-handle"></div>
+    <div class="drw-ttl" id="drw-ttl"></div>
+    <div id="drw-body"></div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="TOAST"></div>
+
+<!-- Firebase SDK (CDN) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const FB_CFG = {
+  apiKey:"AIzaSyBsPDJ3xeCkEcTJMIVogiNCDG04m6QCO7Q",
+  authDomain:"ntca-woodshop.firebaseapp.com",
+  databaseURL:"https://ntca-woodshop-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"ntca-woodshop",
+  storageBucket:"ntca-woodshop.firebasestorage.app",
+  messagingSenderId:"205733324317",
+  appId:"1:205733324317:web:26b56b2fe9a2bb040a08f4"
+};
+firebase.initializeApp(FB_CFG);
+const _db = firebase.database();
+
+// compat API 轉換為與原本相同的介面
+function ref(path){ return _db.ref(path); }
+function push(r, data){ return r.push(data); }
+function set(r, data){ return r.set(data); }
+function remove(r){ return r.remove(); }
+function onValue(r, cb, errCb){ r.on('value', snap=>cb(snap), errCb); }
+function get(r){ return r.once('value'); }
+// ref() 用法：ref('path') 或 ref('path')
+const db = null; // 不再需要，用 ref(path) 直接取
+window._fbRefs = {ref, remove, set}; // 讓外部函式可使用
+const recRef  = ref('records');
+const prodRef = ref('productions');
+const crsRef  = ref('courses');
+const stuRef  = ref('students');
+
+// ── 學生：儲存（新增或更新，以學號為 key）──
+window.fbSaveStu = function(stu) {
+  const {fbKey, ...data} = stu;
+  return set(ref('students/'+data.id), data)
+    .then(() => window.loadStudents()) // 儲存成功後重新從 Firebase 讀取
+    .catch(e => { console.error('FB stu save error',e); toast('⚠ 儲存失敗：'+e.message); });
+};
+
+// ── 學生：刪除 ──
+window.fbDeleteStu = function(stuId) {
+  remove(ref('students/'+stuId)).catch(e=>console.error('FB stu delete error',e));
+};
+
+// ── 寫入一筆打卡紀錄 ──
+window.fbPush = function(record) {
+  const clean = {...record};
+  delete clean.rid;
+  if(clean.photo && clean.photo.length > 500000) clean.photo = null;
+  push(recRef, clean).catch(e => console.error('FB push error', e));
+};
+
+// ── 演出製作：新增 ──
+window.fbPushProd = function(prod) {
+  push(prodRef, prod).catch(e => console.error('FB prod push error', e));
+};
+
+// ── 演出製作：刪除 ──
+window.fbDeleteProd = function(fbKey) {
+  remove(ref('productions/'+fbKey)).catch(e => console.error('FB prod delete error', e));
+};
+
+// ── 課程：儲存（新增或更新）──
+window.fbSaveCourse = function(course) {
+  const {fbKey, ...data} = course;
+  if(fbKey) {
+    set(ref('courses/'+fbKey), data).catch(e=>console.error('FB course update error',e));
+  } else {
+    push(crsRef, data).catch(e=>console.error('FB course push error',e));
+  }
+};
+
+// ── 課程：刪除 ──
+window.fbDeleteCourse = function(fbKey) {
+  remove(ref('courses/'+fbKey)).catch(e => console.error('FB course delete error', e));
+};
+
+// ── 即時監聽演出製作 ──
+onValue(prodRef, snap => {
+  const raw = snap.val();
+  if(!raw) {
+    window.PRODUCTIONS = window._PROD_DEFAULT.slice();
+  } else {
+    const fbProds = Object.entries(raw).map(([fbKey,p])=>({...p,fbKey}));
+    window.PRODUCTIONS = fbProds;
+  }
+  // 函式已定義才呼叫，否則等 _fbReady 後補呼叫
+  if(typeof buildCIProdPills  === 'function') buildCIProdPills();
+  if(typeof syncProdDropdowns === 'function') syncProdDropdowns();
+  if(window._fbReady && typeof renderCourses === 'function' && window.APP?.subPage==='courses') renderCourses();
+  if(window._fbReady && typeof renderProds   === 'function' && window.APP?.subPage==='prods')   renderProds();
+});
+
+// ── 即時監聽課程 ──
+onValue(crsRef, snap => {
+  const raw = snap.val();
+  if(raw) {
+    window.COURSES = Object.entries(raw).map(([fbKey,c])=>({...c,fbKey}));
+  }
+  if(window._fbReady && typeof renderCourses === 'function' && window.APP?.subPage==='courses') renderCourses();
+});
+
+// ── 學生名單：單次讀取（避免 onValue 快取覆蓋問題）──
+window.loadStudents = function(){
+  return get(ref('students')).then(snap => {
+    const raw = snap.val();
+    if(raw) {
+      window.STUDENTS = Object.entries(raw).map(([id,s])=>({...s, id}));
+    } else {
+      // Firebase 無資料，seed 預設學生
+      window.STUDENTS.forEach(s =>
+        set(ref('students/'+s.id), {id:s.id,name:s.name,grade:s.grade,role:s.role})
+          .catch(e=>console.error('seed error',e))
+      );
+    }
+    if(typeof buildCIPills    === 'function') buildCIPills();
+    if(typeof renderStudents  === 'function' && window.APP?.subPage==='students') renderStudents();
+  }).catch(e=>console.error('loadStudents error',e));
+};
+// 頁面載入時讀一次
+window.loadStudents();
+
+// ── 寫入一筆打卡紀錄 ──
+window.fbPush = function(record) {
+  // 移除不可序列化的欄位
+  const clean = {...record};
+  delete clean.rid; // Firebase 自動產生 key
+  if(clean.photo && clean.photo.length > 500000) clean.photo = null; // 照片太大略過
+  push(recRef, clean).catch(e => console.error('FB push error', e));
+};
+
+// ── 即時監聽所有紀錄 ──
+onValue(recRef, snap => {
+  const raw = snap.val();
+  if(!raw) { window.RECORDS = []; }
+  else {
+    const today = new Date();
+    const todayStr = (today.getMonth()+1).toString().padStart(2,'0')+'/'+(today.getDate()).toString().padStart(2,'0');
+    window.RECORDS = Object.entries(raw).map(([fbKey, r]) => {
+      // 計算 day 欄位（0=今天, 1=昨天...）
+      let day = 999;
+      if(r.date) {
+        const parts = r.date.split('/');
+        const d = new Date(today.getFullYear(), parseInt(parts[0])-1, parseInt(parts[1]));
+        const diff = Math.floor((new Date(today.getFullYear(), today.getMonth(), today.getDate()) - d) / 86400000);
+        day = diff < 0 ? 999 : diff;
+      }
+      return {...r, fbKey, day};
+    }).sort((a,b) => {
+      // 排序：先比日期，再比時間（最新在前）
+      if(a.date !== b.date) return b.date > a.date ? 1 : -1;
+      return b.time > a.time ? 1 : -1;
+    });
+  }
+  // 通知 UI 更新
+  if(window._fbReady) {
+    if(typeof ciUpdateStats === 'function') ciUpdateStats();
+    if(typeof ciRenderRec  === 'function') ciRenderRec();
+    if(typeof syncAdmin    === 'function') syncAdmin();
+  }
+  window._fbReady = true;
+  // 所有函式現在都已定義，補做一次完整 UI 同步
+  if(typeof buildCIProdPills  === 'function') buildCIProdPills();
+  if(typeof buildCIPills      === 'function') buildCIPills();
+  if(typeof syncProdDropdowns === 'function') syncProdDropdowns();
+  if(typeof window.loadStudents === 'function') window.loadStudents();
+  // 隱藏 loading 遮罩
+  const ov = document.getElementById('fb-loading');
+  if(ov) ov.style.display = 'none';
+}, err => {
+  console.error('FB onValue error', err);
+  const ov = document.getElementById('fb-loading');
+  if(ov){ ov.innerHTML='<div style="color:#E8340A;font-size:13px">⚠ 資料庫連線失敗<br><span style="font-size:11px;color:var(--faint)">請確認網路連線</span></div>'; }
+});
+
+// ── 清除全部 ──
+window.fbClearAll = function() { remove(recRef); };
+
+// ── 清除今日 ──
+window.fbClearToday = async function() {
+  const today = new Date();
+  const todayStr = (today.getMonth()+1).toString().padStart(2,'0')+'/'+(today.getDate()).toString().padStart(2,'0');
+  const snap = await get(recRef);
+  const raw = snap.val();
+  if(!raw) return;
+  const dels = Object.entries(raw)
+    .filter(([k,v]) => v.date === todayStr)
+    .map(([k]) => remove(ref('records/'+k)));
+  await Promise.all(dels);
+};
+
+// ── Firebase 就緒通知 ──
+if(window._fbReadyResolve) window._fbReadyResolve();
+</script>
+
+<!-- Loading overlay while Firebase connects -->
+<div id="fb-loading" style="position:fixed;inset:0;background:rgba(13,10,6,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <div style="font-family:'Bebas Neue',cursive;font-size:32px;letter-spacing:4px;color:var(--gold)">木工教室</div>
+  <div style="width:48px;height:48px;border:3px solid rgba(245,200,66,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite"></div>
+  <div style="font-size:12px;color:var(--faint);letter-spacing:2px">連線資料庫中…</div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   DATA
+════════════════════════════════════════ */
+window.STUDENTS=[
+  // ── 展演製作（0663）──
+  {id:"11155007",name:"戴君諺",grade:"大四戊",role:"舞台組"},
+  {id:"11155013",name:"尚明君",grade:"大四戊",role:"舞台組"},
+  {id:"11155026",name:"楊諭錡",grade:"大四戊",role:"舞台組"},
+  {id:"11255009",name:"羅哲司",grade:"大三戊",role:"舞台組"},
+  {id:"11255025",name:"陳霓",  grade:"大三戊",role:"舞台組"},
+  {id:"11255026",name:"黃嫣琇",grade:"大三戊",role:"舞台組"},
+  {id:"11255030",name:"林昱妍",grade:"大三戊",role:"舞台組"},
+  // ── 舞台技術 II（0655）──
+  {id:"11255024",name:"陳楠沛",grade:"大二戊",role:"舞台組"},
+  {id:"11355003",name:"陳子義",grade:"大二戊",role:"舞台組"},
+  {id:"11355008",name:"沈佳蕊",grade:"大二戊",role:"舞台組"},
+  {id:"11355017",name:"陳思安",grade:"大二戊",role:"舞台組"},
+  {id:"11355019",name:"黃翠瑄",grade:"大二戊",role:"舞台組"},
+  {id:"11355021",name:"黃琪棻",grade:"大二戊",role:"舞台組"},
+  {id:"11355031",name:"黃慧恩",grade:"大二戊",role:"舞台組"},
+  {id:"11455991",name:"朱紘希",grade:"大三戊",role:"舞台組"},
+];
+
+window.COURSES=[
+  {id:"C001",name:"展演製作",sem:"114-2",production:"作業展",teacher:"舒應雄",room:"木工教室",students:["11155007","11155013","11155026","11255009","11255025","11255026","11255030"],schedule:"開課號 0663",status:"active",hazardRequired:true},
+  {id:"C002",name:"舞台技術 II",sem:"114-2",production:"作業展",teacher:"舒應雄",room:"木工教室",students:["11255024","11355003","11355008","11355017","11355019","11355021","11355031","11455991"],schedule:"開課號 0655",status:"active",hazardRequired:true},
+];
+
+// 出勤紀錄 — 由 Firebase onValue 即時填充
+window.RECORDS = [];
+let _rid=1;
+// helper: which course is a student in (for semKey/production tagging)
+function _stuCourse(sid){return COURSES.find(c=>c.students.includes(sid))||{sem:"114-2",production:"作業展",id:"C001"};}
+
+var HAZ_CATS=[
+  {id:"PHY",icon:"⚡",color:"#E8340A",label:"一、物理性危害因子",
+   desc:"作業環境中可能造成能量傷害或環境傷害的物理因素（職安法§26）。",
+   items:[
+     {code:"P-01",icon:"🔊",name:"噪音危害",desc:"桌鋸、線鋸機等長期操作產生超過85dB噪音，可能導致噪音性聽力損失（NIHL）。",hazards:["桌鋸運轉噪音>100dB","線鋸機高頻噪音","氣動釘槍瞬間衝擊噪音"],ppe:["耳塞（NRR≥25）","耳罩","限制每日暴露時間"],law:"噪音危害預防準則"},
+     {code:"P-02",icon:"📳",name:"振動危害",desc:"手持電動工具長期操作可能導致手臂振動症候群（HAV）、白指病。",hazards:["手持砂磨機振動","修邊機手把振動","長時間連續作業"],ppe:["防振手套","作業中斷休息","每日暴露時間控管"],law:"人因性危害預防計畫"},
+     {code:"P-03",icon:"🌡️",name:"高溫與照明",desc:"夏季作業區溫度可能超過30°C，有熱傷害風險；照明不足影響工具安全操作。",hazards:["作業區溫度過高","局部照明不足","電焊弧光暴露"],ppe:["適時補水休息","確認作業燈亮度","遮光面罩（電焊）"],law:"職業安全衛生設施規則§324"},
+   ]},
+  {id:"CHEM",icon:"🧪",color:"#FF9500",label:"二、化學性危害因子",
+   desc:"塗裝材料含揮發性有機物（VOC）、木粉塵及強力接著劑，吸入或接觸均有健康風險。",
+   items:[
+     {code:"C-01",icon:"💨",name:"木粉塵（可吸入性粉塵）",desc:"切割、砂磨木料產生細微木粉塵，長期吸入可能導致塵肺症；特種木材含致敏原。",hazards:["桌鋸切割粉塵","砂磨細粉塵","特種木材致敏粉塵（柚木/紅木）"],ppe:["N95口罩（必戴）","集塵系統開啟","作業後清潔"],law:"危害性化學品標示及通識規則"},
+     {code:"C-02",icon:"🏭",name:"有機溶劑蒸氣（VOC）",desc:"PU漆、亮光漆含苯、甲苯等VOC，密閉空間高濃度暴露可導致急性中毒。",hazards:["聚氨酯亮光漆（PU Coat）","壓克力塗料","強力膠（接著劑）","木器染色劑"],ppe:["有機溶劑防毒口罩（必戴）","化學防護手套","排風扇全程開啟"],law:"有機溶劑中毒預防規則"},
+     {code:"C-03",icon:"☁️",name:"燻煙與漆霧",desc:"噴漆作業產生漆霧及燻煙，含微粒懸浮物，長期暴露影響肺部及心血管。",hazards:["噴漆霧滴吸入","加熱工具燻煙","砂磨塗裝面粉塵"],ppe:["P100濾片口罩","護目鏡（噴漆）","噴漆區隔離作業"],law:"危害性化學品標示及通識規則"},
+   ]},
+  {id:"BIO",icon:"🦠",color:"#32ADE6",label:"三、生物性危害因子",
+   desc:"潮濕木料及長期積塵可能滋生微生物，須注意生物氣膠暴露風險。",
+   items:[
+     {code:"B-01",icon:"🍄",name:"黴菌與微生物",desc:"潮濕舊木材含真菌孢子（生物氣膠），吸入後可能引發過敏性肺炎或呼吸道感染。",hazards:["舊木材黴菌孢子","長期積存木屑滋生菌","潮濕環境生物氣膠"],ppe:["N95口罩（處理舊木料）","作業後洗手","避免接觸眼口鼻"],law:"職業安全衛生法§26"},
+     {code:"B-02",icon:"🌿",name:"植物性過敏原",desc:"特種木材（桃花心木、柚木）含天然樹脂、精油，可能引發皮膚炎或支氣管痙攣。",hazards:["特種木材天然樹脂","木材精油揮發","切割研磨木屑接觸"],ppe:["作業手套","口罩","作業後清潔皮膚"],law:"職業安全衛生設施規則"},
+   ]},
+  {id:"ERG",icon:"🧠",color:"#BF5AF2",label:"四、人因工程與心理性危害",
+   desc:"不當作業姿勢、重複動作及過重負荷，為木工教室最常被忽視的職業傷害來源。",
+   items:[
+     {code:"E-01",icon:"🔄",name:"重複性動作與不當姿勢",desc:"長時間重複砂磨、刨削動作，可能導致肌肉骨骼疾病（WMSDs），包含肌腱炎、腕隧道症候群。",hazards:["長時間砂磨（重複手腕動作）","彎腰搬運木料","固定姿勢鋸切"],ppe:["每30分鐘伸展","護腕","正確作業姿勢訓練"],law:"人因性危害預防計畫"},
+     {code:"E-02",icon:"📦",name:"過度施力與重物搬運",desc:"木料重量往往超過個人負荷，不當搬運姿勢易造成腰椎傷害及急性肌肉拉傷。",hazards:["單人搬運超重木板（>25kg）","不當彎腰提舉","材料堆放不穩崩塌"],ppe:["護腰帶","雙人搬運超過25公斤","使用搬運輔助工具"],law:"異常工作負荷促發疾病預防計畫"},
+     {code:"E-03",icon:"💭",name:"心理性危害",desc:"展演製作期程壓力、高噪音環境及截止時間焦慮，可能造成心理壓力累積並提高意外風險。",hazards:["展演前期高工時壓力","課程截止日期焦慮","疲勞操作提高事故風險"],ppe:["正常作息充足睡眠","疲勞時停止機具操作","遇問題立即反映教師"],law:"職場不法侵害防治計畫"},
+   ]},
+  {id:"ACC",icon:"🪚",color:"#FFCC00",label:"五、作業環境意外危害",
+   desc:"本教室具有以下具體意外危害（依施工危害因素告知規範）。",
+   items:[
+     {code:"A-01",icon:"🪚",name:"電動切割工具傷害",desc:"桌鋸、線鋸高速刀片直接接觸造成切割傷；木料反彈（Kickback）可能導致嚴重貫穿傷。",hazards:["桌鋸高速刀片接觸","線鋸機切割反彈","圓鋸刀片破裂飛濺","修邊機高轉速"],ppe:["護目鏡（必戴）","防割手套","緊身衣物","禁止單人操作桌鋸"],law:"機械設備器具安全標準"},
+     {code:"A-02",icon:"⚡",name:"感電與火災",desc:"電動工具電線老化、潮濕木料導電及有機溶劑蒸氣遇火花，可能引發感電或爆炸火災。",hazards:["電動工具漏電感電","有機溶劑蒸氣遇火花爆燃","線路老化短路起火"],ppe:["作業前檢查電線絕緣","使用有機溶劑時禁明火","鋸屑定期清理"],law:"職業安全衛生設施規則§57"},
+     {code:"A-03",icon:"📦",name:"物體飛落與被撞",desc:"高處木料墜落，或電動工具操作中碎片飛出，均可能造成撞傷或貫穿傷。",hazards:["高架木料存放不穩墜落","電動工具木屑高速飛濺","釘槍誤射","木料搬運碰撞"],ppe:["護目鏡","鋼頭安全鞋","工作手套","確認高架料件固定"],law:"職安法§26、施工危害告知規範"},
+     {code:"A-04",icon:"🩸",name:"跌倒與墜落",desc:"地面木屑、塗裝液體造成濕滑；工作台邊緣作業可能跌落，為木工教室常見事故原因。",hazards:["地面鋸屑濕滑跌倒","攀登工作台邊緣","絆倒電線","黑暗環境移動碰撞"],ppe:["鋼頭防滑安全鞋","作業後立即清理地面","電線走線固定","充足照明"],law:"職業安全衛生設施規則"},
+   ]},
+];
+
+var EMERGENCY=[
+  {icon:"🛑",label:"緊急停機",desc:"木工教室入口左側紅色大型緊急斷電鈕，所有電動工具同時斷電"},
+  {icon:"🚑",label:"急救聯絡",desc:"分機 1200 或行動 0900-000-119（校安中心），另可直接撥打 119"},
+  {icon:"🧯",label:"滅火器",desc:"教室東、西側牆面各一具 ABC 乾粉滅火器，有機溶劑火災請使用 CO₂"},
+  {icon:"🩹",label:"急救箱",desc:"工具室門口牆面，含止血帶、沖眼液、燒燙傷敷料"},
+  {icon:"💨",label:"排風系統",desc:"使用塗裝化學品前，須開啟排風機（噴漆區門右側），確認排風運作"},
+  {icon:"👁️",label:"緊急沖眼站",desc:"水槽旁（教室北側），化學品觸眼請立即沖洗15分鐘"},
+  {icon:"📋",label:"職業傷害通報",desc:"發生意外須於8小時內向轄區勞動檢查機構通報（職安法§37）"},
+];
+
+/* ════════════════════════════════════════
+   APP STATE
+════════════════════════════════════════ */
+var APP={role:null,user:'',subPage:'dash',reportMode:'sem',editTarget:null,editType:null};
+
+// ── 重新整理後自動還原登入狀態 ──
+(function restoreSession(){
+  const savedRole=sessionStorage.getItem('ntca_role');
+  const savedUser=sessionStorage.getItem('ntca_user');
+  if(!savedRole)return;
+  // 模擬登入流程
+  _loginRole=savedRole;
+  const icons={teacher:'👩‍🏫',admin:'🛡️',student:'🪚'};
+  const labels={teacher:'教師',admin:'管理員',student:'學生'};
+  const colors={teacher:'var(--gold)',admin:'var(--teal)',student:'var(--green)'};
+  const displayName=savedRole==='student'?'學生':(savedUser||'使用者');
+  APP.role=savedRole;APP.user=displayName;
+  document.getElementById('role-ic').textContent=icons[savedRole];
+  document.getElementById('role-nm').textContent=labels[savedRole];
+  document.getElementById('ROLE-CHIP').style.color=colors[savedRole];
+  document.getElementById('ROLE-CHIP').style.borderColor=colors[savedRole]+'66';
+  document.getElementById('LOGOUT-BTN').style.display='flex';
+  document.getElementById('LOGIN').style.display='none';
+  if(savedRole==='student'){
+    document.getElementById('SUB-TABS').style.display='none';
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-clockin').classList.add('active');
+    buildCIPills();
+  } else {
+    document.getElementById('SUB-TABS').style.display='flex';
+    initAdmin();
+    switchSub('dash');
+  }
+})();
+var woodshopCI={action:null,student:null,step:0,read:false,checks:[],sig:'',photo:null,stream:null,camOn:false,photoDone:false,prod:'',gps:null,gpsStatus:'pending',worklog:''};
+
+/* ════════════════════════════════════════
+   PRODUCTIONS DATA (可動態新增/刪除)
+════════════════════════════════════════ */
+var PROD_PALETTE=['var(--blue)','var(--purple)','var(--gold)','var(--orange)','var(--teal)','var(--green)','var(--red)','#FF6B6B','#4ECDC4','#45B7D1'];
+// 預設製作清單（Firebase 讀到資料後會覆蓋）
+window._PROD_DEFAULT=[
+  {name:'作業展',   color:'var(--blue)',   sem:'114-2'},
+  {name:'藝術季',   color:'var(--purple)', sem:'114-2'},
+  {name:'畢業製作', color:'var(--gold)',   sem:'114-1'},
+  {name:'校慶展演', color:'var(--orange)', sem:'113-2'},
+  {name:'聯合公演', color:'var(--teal)',   sem:'113-1'},
+  {name:'期中展',   color:'var(--green)',  sem:'114-2'},
+  {name:'其他自主製作',color:'#8E8E93',   sem:''},
+];
+window.PRODUCTIONS = window._PROD_DEFAULT.slice();
+function prodColor(name){return PRODUCTIONS.find(p=>p.name===name)?.color||'var(--gold)';}
+function prodSem(name){return PRODUCTIONS.find(p=>p.name===name)?.sem||'';}
+
+/* 學期清單：114-2 ～ 100-1（含 140 學年，民國年） */
+var SEMS=(()=>{
+  const list=[];
+  for(let y=114;y>=100;y--){
+    list.push({v:`${y}-2`,l:`${y} 學年  第 2 學期`});
+    list.push({v:`${y}-1`,l:`${y} 學年  第 1 學期`});
+  }
+  return list;
+})();
+function semOptions(selected='',includeAll=false){
+  return (includeAll?'<option value="">全部學期</option>':'')+
+    SEMS.map(s=>`<option value="${s.v}"${s.v===selected?' selected':''}>${s.l}</option>`).join('');
+}
+function semOptionsShort(selected='',includeAll=false){
+  // 短格式（報表用）
+  return (includeAll?'<option value="">全部學期</option>':'')+
+    SEMS.map(s=>`<option value="${s.v}"${s.v===selected?' selected':''}>${s.v}</option>`).join('');
+}
+
+// Rebuild all production dropdowns across the whole UI
+function syncProdDropdowns(){
+  const targets=['crs-prod','rep-prod-sel'];
+  targets.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const cur=el.value;
+    el.innerHTML='<option value="">全部製作</option>'+PRODUCTIONS.map(p=>`<option value="${p.name}"${p.name===cur?' selected':''}>${p.name}</option>`).join('');
+  });
+  // Rebuild all semester dropdowns
+  const semAllTargets=['crs-sem','rep-prod-sem'];
+  semAllTargets.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const cur=el.value;
+    el.innerHTML='<option value="">全部學期</option>'+SEMS.map(s=>`<option value="${s.v}"${s.v===cur?' selected':''}>${s.l}</option>`).join('');
+  });
+  const repSemEl=document.getElementById('rep-sem-sel');
+  if(repSemEl){const cur=repSemEl.value||'114-2';repSemEl.innerHTML=SEMS.map(s=>`<option value="${s.v}"${s.v===cur?' selected':''}>${s.l}</option>`).join('');}
+  renderProdChips();
+  buildCIProdPills();
+}
+// Render chips in the courses management panel
+function renderProdChips(){
+  const el=document.getElementById('prod-chip-list');if(!el)return;
+  if(!PRODUCTIONS.length){el.innerHTML='<div style="font-size:11px;color:var(--faint);padding:6px 0">尚無演出製作項目</div>';return;}
+  el.innerHTML=PRODUCTIONS.map(p=>`
+    <div style="display:inline-flex;align-items:center;gap:5px;padding:5px 6px 5px 10px;background:${p.color}15;border:1px solid ${p.color}35;border-radius:18px">
+      <div style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+      <span style="font-size:12px;font-weight:700;color:${p.color}">${p.name}</span>
+      ${p.sem?`<span style="font-size:10px;color:var(--faint)">${p.sem}</span>`:''}
+      <button data-delprod="${p.name}" title="刪除" style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--faint);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;font-family:sans-serif">✕</button>
+    </div>`).join('');
+  // 事件委派：點任何 [data-delprod] 按鈕都觸發刪除
+  el.querySelectorAll('[data-delprod]').forEach(btn=>{
+    btn.addEventListener('click',function(){deleteProd(this.getAttribute('data-delprod'));});
+  });
+}
+function deleteProd(name){
+  if(!confirm('確定刪除演出製作「'+name+'」？\n（課程資料不影響，但下拉選項將移除）'))return;
+  const prod=PRODUCTIONS.find(p=>p.name===name);
+  if(prod?.fbKey && window.fbDeleteProd){
+    window.fbDeleteProd(prod.fbKey);
+    toast('🗑 已刪除：'+name);
+  } else {
+    // 預設製作（無 fbKey）只從本地移除
+    window.PRODUCTIONS=PRODUCTIONS.filter(p=>p.name!==name);
+    syncProdDropdowns();
+    toast('🗑 已刪除：'+name);
+  }
+}
+
+/* ════════════════════════════════════════
+   CLOCK
+════════════════════════════════════════ */
+function tick(){
+  const n=new Date(),p=v=>String(v).padStart(2,'0');
+  document.getElementById('CLK').textContent=p(n.getHours())+':'+p(n.getMinutes());
+}
+setInterval(tick,1000);tick();
+
+/* ════════════════════════════════════════
+   LOGIN
+════════════════════════════════════════ */
+let _loginRole='teacher';
+function selRole(r){
+  _loginRole=r;
+  ['teacher','admin','student'].forEach(x=>document.getElementById('rb-'+x).className='role-btn'+(x===r?' sel':''));
+  document.getElementById('l-pass-row').style.display=r==='student'?'none':'';
+  document.getElementById('l-pass').style.display=r==='student'?'none':'';
+}
+function doLogin(){
+  const u=document.getElementById('l-user').value.trim();
+  const p=document.getElementById('l-pass').value;
+  // 教師 / 管理員需驗證帳密
+  if(_loginRole==='teacher'||_loginRole==='admin'){
+    if(u!=='bear'||p!=='005515'){
+      const inp=document.getElementById('l-user');
+      const pinp=document.getElementById('l-pass');
+      inp.style.borderColor='var(--red)';pinp.style.borderColor='var(--red)';
+      let err=document.getElementById('l-err');
+      if(!err){err=document.createElement('div');err.id='l-err';err.style.cssText='font-size:11px;color:var(--red);text-align:center;margin-top:6px';document.getElementById('l-pass').after(err);}
+      err.textContent='⚠ 帳號或密碼錯誤';
+      setTimeout(()=>{inp.style.borderColor='';pinp.style.borderColor='';},1800);
+      return;
+    }
+  }
+  // 清除錯誤提示
+  const err=document.getElementById('l-err');if(err)err.remove();
+  const displayName=(_loginRole==='student')?'學生':(u||'使用者');
+  APP.role=_loginRole;APP.user=displayName;
+  const icons={teacher:'👩‍🏫',admin:'🛡️',student:'🪚'};
+  const labels={teacher:'教師',admin:'管理員',student:'學生'};
+  const colors={teacher:'var(--gold)',admin:'var(--teal)',student:'var(--green)'};
+  document.getElementById('role-ic').textContent=icons[APP.role];
+  document.getElementById('role-nm').textContent=labels[APP.role];
+  document.getElementById('ROLE-CHIP').style.color=colors[APP.role];
+  document.getElementById('ROLE-CHIP').style.borderColor=colors[APP.role]+'66';
+  document.getElementById('LOGOUT-BTN').style.display='flex';
+  document.getElementById('LOGIN').style.display='none';
+  if(APP.role==='student'){
+    document.getElementById('SUB-TABS').style.display='none';
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-clockin').classList.add('active');
+    buildCIPills();
+  } else {
+    document.getElementById('SUB-TABS').style.display='flex';
+    initAdmin();
+    switchSub('dash');
+  }
+  toast('歡迎，'+displayName+' '+icons[APP.role]);
+  // 儲存登入狀態，重新整理後自動還原
+  sessionStorage.setItem('ntca_role', _loginRole);
+  sessionStorage.setItem('ntca_user', u||'學生');
+}
+
+function doLogout(){
+  if(!confirm('確定要登出嗎？'))return;
+  sessionStorage.removeItem('ntca_role');
+  sessionStorage.removeItem('ntca_user');
+  APP.role=null;APP.user=null;
+  document.getElementById('LOGOUT-BTN').style.display='none';
+  document.getElementById('ROLE-CHIP').style.color='var(--gold)';
+  document.getElementById('ROLE-CHIP').style.borderColor='var(--gold-d)';
+  document.getElementById('role-ic').textContent='👩‍🏫';
+  document.getElementById('role-nm').textContent='教師';
+  document.getElementById('LOGIN').style.display='flex';
+  document.getElementById('SUB-TABS').style.display='none';
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+  selRole('teacher');
+  toast('已登出');
+}
+
+/* ════════════════════════════════════════
+   SUB-TAB SWITCHING
+════════════════════════════════════════ */
+function switchSub(s){
+  APP.subPage=s;
+  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('st-'+s).classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+s).classList.add('active');
+  const fn={dash:renderDash,report:renderReport,attend:renderAttend,hazard:renderHazard,students:renderStudents,courses:renderCourses};
+  fn[s]&&fn[s]();
+}
+
+/* ════════════════════════════════════════
+   GPS 位置驗證
+   木工教室座標：請依實際位置調整
+════════════════════════════════════════ */
+var WORKSHOP_LAT  = 24.986057169479704;  // 木工教室實際緯度
+var WORKSHOP_LNG  = 121.56738482596845;  // 木工教室實際經度
+var WORKSHOP_RADIUS = 100;     // 允許範圍（公尺），建議 50–150
+
+function gpsDistance(lat1,lng1,lat2,lng2){
+  const R=6371000,r=Math.PI/180;
+  const dLat=(lat2-lat1)*r,dLng=(lng2-lng1)*r;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function startGPS(){
+  woodshopCI.gps=null;woodshopCI.gpsStatus='pending';
+  updateGPSBar('pending',null,null);
+  if(!navigator.geolocation){
+    woodshopCI.gpsStatus='unavailable';
+    updateGPSBar('unavailable',null,null);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const {latitude:lat,longitude:lng,accuracy:acc}=pos.coords;
+      const dist=Math.round(gpsDistance(lat,lng,WORKSHOP_LAT,WORKSHOP_LNG));
+      const inside=dist<=WORKSHOP_RADIUS;
+      woodshopCI.gps={lat,lng,acc:Math.round(acc),dist,inside};
+      woodshopCI.gpsStatus=inside?'ok':'outside';
+      updateGPSBar(woodshopCI.gpsStatus,dist,Math.round(acc));
+    },
+    err=>{
+      woodshopCI.gpsStatus='denied';
+      updateGPSBar('denied',null,null);
+    },
+    {enableHighAccuracy:true,timeout:12000,maximumAge:0}
+  );
+}
+
+function updateGPSBar(status,dist,acc){
+  const icon=document.getElementById('ci-gps-icon');
+  const label=document.getElementById('ci-gps-label');
+  const sub=document.getElementById('ci-gps-sub');
+  const badge=document.getElementById('ci-gps-badge');
+  const bar=document.getElementById('ci-gps-bar');
+  if(!icon)return;
+
+  icon.classList.remove('gps-scanning');
+
+  const cfg={
+    pending:  {ic:'📡',icClass:'gps-scanning',lbl:'正在取得位置…',sub:'請稍候',bg:'rgba(255,255,255,.04)',bd:'var(--bd)',badgeTxt:'定位中',badgeBg:'rgba(255,255,255,.06)',badgeC:'var(--faint)'},
+    ok:       {ic:'✅',lbl:'位置確認：木工教室',sub:`距教室 ${dist}m・精確度 ±${acc}m`,bg:'rgba(52,199,89,.06)',bd:'rgba(52,199,89,.25)',badgeTxt:'✓ 在場',badgeBg:'rgba(52,199,89,.15)',badgeC:'var(--green)'},
+    outside:  {ic:'⚠️',lbl:`位置異常：距教室 ${dist} 公尺`,sub:`超出允許範圍（${WORKSHOP_RADIUS}m）・精確度 ±${acc}m`,bg:'rgba(255,149,0,.06)',bd:'rgba(255,149,0,.3)',badgeTxt:'⚠ 不在場',badgeBg:'rgba(255,149,0,.15)',badgeC:'var(--orange)'},
+    denied:   {ic:'🔒',lbl:'無法取得位置（已拒絕授權）',sub:'請至手機設定開啟位置權限',bg:'rgba(232,52,10,.06)',bd:'rgba(232,52,10,.25)',badgeTxt:'無位置',badgeBg:'rgba(232,52,10,.12)',badgeC:'var(--red)'},
+    unavailable:{ic:'📵',lbl:'此裝置不支援 GPS',sub:'位置驗證略過',bg:'rgba(255,255,255,.04)',bd:'var(--bd)',badgeTxt:'略過',badgeBg:'rgba(255,255,255,.06)',badgeC:'var(--faint)'},
+  };
+  const c=cfg[status]||cfg.pending;
+  icon.textContent=c.ic;
+  if(c.icClass)icon.classList.add(c.icClass);
+  label.textContent=c.lbl;sub.textContent=c.sub;
+  bar.style.background=c.bg;bar.style.borderColor=c.bd;
+  badge.textContent=c.badgeTxt;badge.style.background=c.badgeBg;badge.style.color=c.badgeC;
+}
+
+/* ════════════════════════════════════════
+   CLOUDINARY 工作照片上傳
+════════════════════════════════════════ */
+var CLD = {
+  cloudName: 'dppuj40ch',
+  preset:    'ntca-woodshop',
+  url: () => `https://api.cloudinary.com/v1_1/dppuj40ch/image/upload`
+};
+
+// 上傳至 Cloudinary，依日期建資料夾
+async function cldUpload(dataUrl, filename){
+  const today = new Date();
+  const folder = `ntca-woodshop/${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const blob = await (await fetch(dataUrl)).blob();
+  const fd = new FormData();
+  fd.append('file', blob, filename);
+  fd.append('upload_preset', CLD.preset);
+  fd.append('folder', folder);
+  fd.append('public_id', filename);
+  const res = await fetch(CLD.url(), {method:'POST', body:fd});
+  if(!res.ok) throw new Error('Upload failed: '+res.status);
+  const data = await res.json();
+  return data.secure_url;
+}
+
+// woodshopCI 工作照狀態
+var woodshopCIW = {stream:null, photoDataUrl:null, photoUrl:null};
+
+function ciWPhotoCam(){
+  const v=document.getElementById('ci-wcam-v');
+  const btns=document.getElementById('ci-wcam-btns');
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}})
+    .then(st=>{
+      woodshopCIW.stream=st;v.srcObject=st;v.style.display='block';
+      btns.style.display='flex';
+      document.getElementById('ci-wphoto-btns').style.display='none';
+    })
+    .catch(()=>{
+      // fallback：直接開檔案選取
+      document.querySelector('#ci-worklog-box input[type=file]').click();
+    });
+}
+function ciWCamCancel(){
+  if(woodshopCIW.stream){woodshopCIW.stream.getTracks().forEach(t=>t.stop());woodshopCIW.stream=null;}
+  document.getElementById('ci-wcam-v').style.display='none';
+  document.getElementById('ci-wcam-btns').style.display='none';
+  document.getElementById('ci-wphoto-btns').style.display='flex';
+}
+function ciWShoot(){
+  const v=document.getElementById('ci-wcam-v'),cv=document.getElementById('ci-wcam-c');
+  cv.width=v.videoWidth||1280;cv.height=v.videoHeight||720;
+  cv.getContext('2d').drawImage(v,0,0);
+  const dataUrl=cv.toDataURL('image/jpeg',.85);
+  ciWCamCancel();
+  ciWPhotoPreview(dataUrl);
+}
+function ciWPhotoFile(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>ciWPhotoPreview(e.target.result);
+  r.readAsDataURL(f);
+  inp.value='';
+}
+function ciWPhotoPreview(dataUrl){
+  woodshopCIW.photoDataUrl=dataUrl;woodshopCIW.photoUrl=null;
+  document.getElementById('ci-wphoto-img').src=dataUrl;
+  document.getElementById('ci-wphoto-preview').style.display='block';
+  document.getElementById('ci-wphoto-btns').style.display='none';
+  document.getElementById('ci-wphoto-status').textContent='✓ 照片已選取，送出時自動上傳';
+  document.getElementById('ci-wphoto-status').style.color='var(--green)';
+  document.getElementById('ci-wcam-v').style.display='none';
+  document.getElementById('ci-wcam-btns').style.display='none';
+}
+function ciRemoveWPhoto(){
+  woodshopCIW.photoDataUrl=null;woodshopCIW.photoUrl=null;
+  document.getElementById('ci-wphoto-preview').style.display='none';
+  document.getElementById('ci-wphoto-btns').style.display='flex';
+  document.getElementById('ci-wphoto-status').textContent='';
+}
+
+/* ════════════════════════════════════════
+   CLOCK-IN FRONT END
+════════════════════════════════════════ */
+function buildCIPills(){
+  const c=document.getElementById('ci-pills');
+  if(c){c.innerHTML='';STUDENTS.forEach(s=>{const b=document.createElement('button');b.className='qpill';b.textContent=s.name;b.onclick=()=>ciPick(s);c.appendChild(b);});}
+  buildCIProdPills();
+}
+function buildCIProdPills(){
+  const c=document.getElementById('ci-prod-pills');if(!c)return;
+  c.innerHTML='';
+  if(!PRODUCTIONS.length){c.innerHTML='<span style="font-size:11px;color:var(--faint)">尚無製作項目（請至後台新增）</span>';return;}
+  PRODUCTIONS.forEach(p=>{
+    const sel=woodshopCI.prod===p.name;
+    const b=document.createElement('button');
+    b.setAttribute('style',
+      `padding:6px 14px;border-radius:16px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid;transition:all .18s;font-family:'Noto Sans TC',sans-serif;`+
+      (sel?`background:${p.color};border-color:${p.color};color:#000 !important;box-shadow:0 0 12px ${p.color}60;`
+          :`background:transparent;border-color:${p.color}55;color:${p.color};`)
+    );
+    b.textContent='🎭 '+p.name;
+    b.onclick=()=>ciSelectProd(p.name);
+    c.appendChild(b);
+  });
+}
+function ciSelectProd(name){
+  woodshopCI.prod=name;
+  document.getElementById('ci-prod-warn').style.display='none';
+  buildCIProdPills();
+}
+function ciStart(type){
+  if(!woodshopCI.prod){
+    document.getElementById('ci-prod-warn').style.display='block';
+    document.getElementById('ci-prod-warn').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  woodshopCI.action=type;
+  const isIn=type==='in';
+  document.getElementById('ci-topbar').style.background=isIn?'var(--green)':'var(--blue)';
+  const lbl=document.getElementById('ci-lbl');
+  lbl.textContent=isIn?'▲ 上工打卡 · CLOCK IN':'▼ 下工打卡 · CLOCK OUT';
+  lbl.style.color=isIn?'var(--green)':'var(--blue)';
+  const cb=document.getElementById('ci-conf');
+  cb.style.background=isIn?'linear-gradient(135deg,#34C759,#28B04B)':'linear-gradient(135deg,#007AFF,#0051D5)';
+  cb.style.color='#fff';
+  cb.textContent=isIn?'繼續 → 危害告知確認':'確認下工打卡';
+  // Show prod badge in input view
+  const badge=document.getElementById('ci-prod-badge');
+  if(badge){const pc=prodColor(woodshopCI.prod);badge.textContent='🎭 '+woodshopCI.prod;badge.style.background=pc+'18';badge.style.borderColor=pc+'40';badge.style.color=pc;}
+  document.getElementById('ci-home').style.display='none';
+  document.getElementById('ci-input').style.display='block';
+  // 工作日誌：下工才顯示
+  const wbox=document.getElementById('ci-worklog-box');
+  const wta=document.getElementById('ci-worklog');
+  if(wbox){wbox.style.display=type==='out'?'block':'none';}
+  if(wta){wta.value='';woodshopCI.worklog='';}
+  const hint=document.getElementById('ci-worklog-hint');
+  if(hint)hint.textContent='至少輸入 5 個字';
+  startGPS(); // 進入打卡頁即開始定位
+  setTimeout(()=>document.getElementById('ci-id').focus(),280);
+}
+function ciSearch(){
+  const v=document.getElementById('ci-id').value.trim().toUpperCase();
+  const s=STUDENTS.find(x=>x.id===v);
+  if(s)ciPick(s);
+  else{
+    document.getElementById('ci-id').className='id-inp err';
+    const e=document.getElementById('ci-err');e.textContent='⚠ 查無此學號，請確認後重試';e.style.display='block';
+    document.getElementById('ci-found').style.display='none';
+    document.getElementById('ci-conf').disabled=true;woodshopCI.student=null;
+  }
+}
+function ciPick(s){
+  woodshopCI.student=s;
+  document.getElementById('ci-id').value=s.id;document.getElementById('ci-id').className='id-inp ok';
+  document.getElementById('ci-err').style.display='none';
+  document.getElementById('ci-sname').textContent=s.name;
+  document.getElementById('ci-smeta').textContent=s.id+'　'+s.grade+'　'+s.role;
+  document.getElementById('ci-found').style.display='flex';
+  // 下工：需檢查 worklog；上工：直接啟用
+  if(woodshopCI.action==='out') ciCheckWorklog();
+  else document.getElementById('ci-conf').disabled=false;
+}
+function ciCheckWorklog(){
+  const ta=document.getElementById('ci-worklog');
+  if(!ta)return;
+  woodshopCI.worklog=ta.value.trim();
+  const ok=woodshopCI.worklog.length>=5&&woodshopCI.student;
+  document.getElementById('ci-conf').disabled=!ok;
+  const hint=document.getElementById('ci-worklog-hint');
+  if(hint){
+    const len=woodshopCI.worklog.length;
+    if(len===0)hint.textContent='至少輸入 5 個字';
+    else if(len<5)hint.style.color='var(--orange)',hint.textContent=`還需要 ${5-len} 個字`;
+    else hint.style.color='var(--green)',hint.textContent=`✓ ${len} 字`;
+  }
+}
+function ciConfirm(){
+  if(!woodshopCI.student)return;
+  woodshopCI.action==='in'?openHazModal():ciFinishOut();
+}
+function ciGoHome(){
+  stopCam();
+  document.getElementById('ci-home').style.display='block';
+  document.getElementById('ci-input').style.display='none';
+  document.getElementById('ci-id').value='';
+  document.getElementById('ci-id').className='id-inp';
+  document.getElementById('ci-err').style.display='none';
+  document.getElementById('ci-found').style.display='none';
+  document.getElementById('ci-conf').disabled=true;
+  woodshopCI.student=null;woodshopCI.worklog='';
+  const wta=document.getElementById('ci-worklog');if(wta)wta.value='';
+  // 重置工作照片
+  woodshopCIW.photoDataUrl=null;woodshopCIW.photoUrl=null;
+  ciWCamCancel();
+  const prev=document.getElementById('ci-wphoto-preview');if(prev)prev.style.display='none';
+  const wbtns=document.getElementById('ci-wphoto-btns');if(wbtns)wbtns.style.display='flex';
+  const wst=document.getElementById('ci-wphoto-status');if(wst)wst.textContent='';
+}
+async function ciFinishOut(){
+  const btn=document.getElementById('ci-conf');
+  btn.disabled=true;btn.textContent='處理中…';
+  try{
+    const t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const today=new Date();
+    const ds=(today.getMonth()+1).toString().padStart(2,'0')+'/'+(today.getDate()).toString().padStart(2,'0');
+    // 重新從 STUDENTS 取最新姓名（避免打卡途中資料已更新）
+    const latestStu = STUDENTS.find(s=>s.id===woodshopCI.student.id) || woodshopCI.student;
+    // 上傳工作照片
+    let wphotoUrl=null;
+    if(woodshopCIW.photoDataUrl){
+      try{
+        document.getElementById('ci-wphoto-uploading').style.display='flex';
+        const fname=`${latestStu.id}_${ds.replace('/','')}_${Date.now()}`;
+        wphotoUrl=await cldUpload(woodshopCIW.photoDataUrl, fname);
+        document.getElementById('ci-wphoto-status').textContent='✅ 照片上傳成功';
+      }catch(e){
+        console.error('Cloudinary upload error',e);
+        toast('⚠ 照片上傳失敗，紀錄仍會儲存');
+      }finally{
+        document.getElementById('ci-wphoto-uploading').style.display='none';
+      }
+    }
+    const rec={...latestStu,type:'out',date:ds,time:t,hazard:false,photo:null,
+      semKey:prodSem(woodshopCI.prod),production:woodshopCI.prod,courseId:'',
+      gps:woodshopCI.gps||null,gpsStatus:woodshopCI.gpsStatus||'pending',
+      worklog:woodshopCI.worklog||'',
+      workphoto:wphotoUrl||null,
+      ts:Date.now()};
+    if(window.fbPush) window.fbPush(rec);
+    ciGoHome();showFlash('out',t,false,null);
+    woodshopCIW.photoDataUrl=null;woodshopCIW.photoUrl=null;
+  }catch(e){
+    console.error('ciFinishOut error',e);
+    toast('⚠ 發生錯誤，請重試');
+    btn.disabled=false;btn.textContent='確認下工打卡';
+  }
+}
+function ciUpdateStats(){
+  const r=RECORDS.filter(x=>x.day===0);
+  const inC=r.filter(x=>x.type==='in').length,outC=r.filter(x=>x.type==='out').length;
+  document.getElementById('ci-s-in').textContent=inC;
+  document.getElementById('ci-s-out').textContent=outC;
+  document.getElementById('ci-s-haz').textContent=r.filter(x=>x.hazard).length;
+  document.getElementById('ci-s-pres').textContent=Math.max(0,inC-outC);
+}
+function ciRenderRec(){
+  const el=document.getElementById('ci-rec-list');
+  const rec=RECORDS.filter(r=>r.day===0);
+  if(!rec.length){el.innerHTML='<div style="text-align:center;padding:18px;font-size:11px;color:var(--faint)">尚無打卡紀錄</div>';return;}
+  el.innerHTML=rec.map(r=>`<div class="rec-item" style="border-left-color:${r.type==='in'?'var(--green)':'var(--blue)'}">
+    <div style="flex:1">
+      <div style="font-family:'Noto Serif TC',serif;font-size:13px;font-weight:700">${r.name}</div>
+      <div style="font-size:10px;color:var(--faint);margin-top:1px">${r.role}·${r.grade}</div>
+      ${r.production?`<div style="font-size:10px;color:${prodColor(r.production)};margin-top:1px;opacity:.75">🎭 ${r.production}</div>`:''}
+      ${r.hazard?'<div style="font-size:10px;color:rgba(245,200,66,.55);margin-top:1px">✓ 危害告知</div>':''}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      ${r.photo?`<img src="${r.photo}" class="rec-thumb" style="border-color:${r.type==='in'?'var(--green)':'var(--blue)'}">` :''}
+      <div style="text-align:right">
+        <div style="font-family:'Bebas Neue',cursive;font-size:11px;letter-spacing:2px;color:${r.type==='in'?'var(--green)':'var(--blue)'}">${r.type==='in'?'▲ 上工':'▼ 下工'}</div>
+        <div style="font-family:'Bebas Neue',cursive;font-size:12px;letter-spacing:1px;color:var(--dim)">${r.time}</div>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+/* ════════════════════════════════════════
+   HAZARD MODAL
+════════════════════════════════════════ */
+function openHazModal(){
+  Object.assign(woodshopCI,{step:0,read:false,checks:[],sig:'',photo:null,camOn:false,photoDone:false});
+  document.getElementById('hm-sub').textContent='告知對象：'+woodshopCI.student.name+'　'+woodshopCI.student.grade+'　'+woodshopCI.student.role;
+  document.getElementById('HAZ-MODAL').style.display='flex';
+  renderHazStep();
+}
+function closeHazModal(){stopCam();document.getElementById('HAZ-MODAL').style.display='none';}
+
+function renderHazStep(){
+  // steps bar: 0-4 = 5 haz cats, 5 = emergency, 6 = sign
+  const total=7;
+  document.getElementById('hm-steps').innerHTML=Array.from({length:total},(_,i)=>
+    `<div class="step-seg ${i<woodshopCI.step?'done':i===woodshopCI.step?'cur':''}"></div>`).join('');
+  const body=document.getElementById('hm-body'),foot=document.getElementById('hm-foot');
+
+  if(woodshopCI.step<5){
+    const cat=HAZ_CATS[woodshopCI.step];
+    body.innerHTML=`
+      <div style="font-size:10px;letter-spacing:2px;color:var(--faint);margin-bottom:9px">${woodshopCI.step+1}/5　${cat.label}</div>
+      <div style="font-size:11px;color:var(--dim);line-height:1.6;margin-bottom:12px;padding:9px 11px;background:rgba(255,255,255,.03);border-radius:4px;border-left:3px solid ${cat.color}">${cat.desc}</div>
+      ${cat.items.map(h=>`
+        <div class="hi" style="border-left-color:${cat.color};background:${cat.color}07;border:1px solid ${cat.color}20;border-left:3px solid ${cat.color}">
+          <div class="hi-head">
+            <span style="font-size:19px">${h.icon}</span>
+            <span class="hi-name">${h.name}</span>
+            <span class="hi-lv" style="background:${cat.color}20;color:${cat.color}">${h.code}</span>
+          </div>
+          <div class="hi-desc">${h.desc}</div>
+          <div class="hi-cols">
+            <div><div class="hi-col-t">危害來源</div>${h.hazards.map(x=>`<div class="hi-col-i">· ${x}</div>`).join('')}</div>
+            <div><div class="hi-col-t">防護措施 PPE</div>${h.ppe.map(x=>`<div class="ppe-i">✓ ${x}</div>`).join('')}</div>
+          </div>
+          <div class="hi-law">📄 ${h.law}</div>
+        </div>`).join('')}
+      <div style="height:14px"></div>`;
+    body.onscroll=()=>{
+      if(body.scrollTop+body.clientHeight>=body.scrollHeight-14){
+        woodshopCI.read=true;
+        const nb=document.getElementById('hn-btn');
+        if(nb){nb.disabled=false;nb.style.background='linear-gradient(135deg,var(--gold),#E8A800)';nb.style.color='#000';nb.textContent=(woodshopCI.step===4?'已閱畢，前往緊急應變 →':'已閱畢，繼續下一類 →');}
+        const sh=document.getElementById('hn-sh');if(sh)sh.style.display='none';
+      }
+    };
+    foot.innerHTML=`
+      <div id="hn-sh" style="text-align:center;font-size:10px;color:var(--gold-d);letter-spacing:1px;margin-bottom:7px;${woodshopCI.read?'display:none':''}">↓ 請向下捲動閱讀完整內容 ↓</div>
+      <div style="display:flex;gap:8px">
+        ${woodshopCI.step>0?`<button class="btn-g" onclick="woodshopCI.step--;woodshopCI.read=false;renderHazStep()">← 返回</button>`:`<button class="btn-g" onclick="closeHazModal();ciGoHome()">取消</button>`}
+        <button class="btn-p" id="hn-btn"
+          style="background:${woodshopCI.read?'linear-gradient(135deg,var(--gold),#E8A800)':'rgba(255,255,255,.07)'};color:${woodshopCI.read?'#000':'rgba(255,255,255,.25)'}"
+          ${woodshopCI.read?'':'disabled'}
+          onclick="woodshopCI.step++;woodshopCI.read=false;renderHazStep()">
+          ${woodshopCI.read?(woodshopCI.step===4?'已閱畢，前往緊急應變 →':'已閱畢，繼續下一類 →'):'請先閱讀完整內容'}
+        </button>
+      </div>`;
+  } else if(woodshopCI.step===5){
+    body.onscroll=null;
+    body.innerHTML=`
+      <div style="font-size:10px;letter-spacing:2px;color:var(--faint);margin-bottom:11px">緊急應變程序 ─ 請務必記住以下資訊</div>
+      ${EMERGENCY.map(e=>`<div style="display:flex;align-items:flex-start;gap:12px;background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:10px 12px;margin-bottom:8px">
+        <span style="font-size:21px;flex-shrink:0">${e.icon}</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:2px">${e.label}</div><div style="font-size:11px;color:var(--dim);line-height:1.5">${e.desc}</div></div>
+      </div>`).join('')}
+      <div style="background:rgba(232,52,10,.08);border:1px solid rgba(232,52,10,.25);border-radius:4px;padding:10px 12px;font-size:11px;color:rgba(232,52,10,.9);line-height:1.7">
+        ⚡ 若發生意外，立即停機、通報、撤離，禁止私自處理。<br>本告知紀錄依<strong>職安法第26條</strong>保存 <strong>3年</strong>，供勞動檢查機關查驗。
+      </div>`;
+    foot.innerHTML=`<div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-g" onclick="woodshopCI.step=4;woodshopCI.read=true;renderHazStep()">← 返回</button>
+      <button class="btn-p" style="background:linear-gradient(135deg,var(--gold),#E8A800);color:#000" onclick="woodshopCI.step=6;renderHazStep()">已了解，前往電子簽名 →</button>
+    </div>`;
+  } else {
+    body.onscroll=null;
+    const allChk=woodshopCI.checks.length===3&&woodshopCI.checks.every(Boolean),sigOk=woodshopCI.sig===woodshopCI.student.name;
+    body.innerHTML=`
+      <div class="confirm-box">
+        本人 <strong style="color:var(--gold)">${woodshopCI.student.name}</strong> 確認已詳細閱讀「國立臺灣戲曲學院劇場藝術學系木工教室展演製作課」依<strong>職安法第26條</strong>所揭示之五類職業危害告知事項，並知悉緊急應變程序。
+      </div>
+      <div class="chk-list">
+        ${['我已了解五類危害因子之風險，並知悉各項必要個人防護具（PPE）',
+           '我已了解緊急停機位置、急救聯絡方式、沖眼站位置及應變程序',
+           '我承諾作業期間遵守職安規範，正確配戴防護具，疲勞時停止機具操作'
+          ].map((t,i)=>`
+          <div class="chk-item" onclick="hazToggleChk(${i})">
+            <div class="chk-box ${woodshopCI.checks[i]?'on':''}" id="hcb${i}">${woodshopCI.checks[i]?'<span style="font-size:11px;color:#000;font-weight:900">✓</span>':''}</div>
+            <span style="font-size:12px;color:var(--dim);line-height:1.6">${t}</span>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--faint);letter-spacing:1px;margin-bottom:5px">請輸入姓名作為電子簽名</div>
+      <input class="sig-inp ${sigOk?'ok':''}" id="hm-sig" type="text"
+        placeholder="請輸入「${woodshopCI.student.name}」" value="${woodshopCI.sig}"
+        oninput="hazOnSig(this.value)" autocorrect="off" autocomplete="off" spellcheck="false">
+      <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:7px;display:flex;align-items:center;gap:5px">
+        📸 拍照存證 <span style="font-size:10px;font-weight:400;color:var(--faint)">（建議拍攝本人正面）</span>
+      </div>
+      <div class="cam-box" id="hm-cam">
+        <video id="hm-v" autoplay playsinline muted></video>
+        <canvas id="hm-c"></canvas>
+        <div class="cam-ph" id="hm-ph"><span style="font-size:34px">📷</span><span style="font-size:11px;color:var(--faint)">點擊「開啟相機」</span></div>
+        ${woodshopCI.photoDone?'<div class="cam-badge">✓ 已拍照</div>':''}
+      </div>
+      <div class="cam-ctrls" id="hm-ctrls"></div>`;
+    renderCamCtrls();
+    renderHazFinalBtn();
+  }
+}
+function hazToggleChk(i){
+  if(woodshopCI.checks.length<3)woodshopCI.checks=[false,false,false];
+  woodshopCI.checks[i]=!woodshopCI.checks[i];
+  const b=document.getElementById('hcb'+i);
+  if(b){b.className='chk-box'+(woodshopCI.checks[i]?' on':'');b.innerHTML=woodshopCI.checks[i]?'<span style="font-size:11px;color:#000;font-weight:900">✓</span>':'';}
+  renderHazFinalBtn();
+}
+function hazOnSig(v){
+  woodshopCI.sig=v;const i=document.getElementById('hm-sig');
+  if(i)i.className='sig-inp'+(v===woodshopCI.student.name?' ok':'');
+  renderHazFinalBtn();
+}
+function renderHazFinalBtn(){
+  const f=document.getElementById('hm-foot');if(!f)return;
+  const ok=woodshopCI.checks.length===3&&woodshopCI.checks.every(Boolean)&&woodshopCI.sig===woodshopCI.student.name;
+  f.innerHTML='';
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:8px';
+  const back=document.createElement('button');back.className='btn-g';back.textContent='← 返回';
+  back.addEventListener('click',()=>{woodshopCI.step=5;renderHazStep();});
+  const fwd=document.createElement('button');fwd.className='btn-p';
+  fwd.style.background=ok?'linear-gradient(135deg,#34C759,#28B04B)':'rgba(255,255,255,.07)';
+  fwd.style.color=ok?'#fff':'rgba(255,255,255,.25)';
+  fwd.textContent='✓ 簽署完成，開始上工';
+  if(!ok)fwd.disabled=true;
+  else fwd.addEventListener('click',hazFinish);
+  row.appendChild(back);row.appendChild(fwd);f.appendChild(row);
+}
+function hazFinish(){
+  stopCam();
+  const t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const today=new Date();const ds=(today.getMonth()+1).toString().padStart(2,'0')+'/'+(today.getDate()).toString().padStart(2,'0');
+  const rec={...woodshopCI.student,type:'in',date:ds,time:t,hazard:true,photo:woodshopCI.photo||null,
+    semKey:prodSem(woodshopCI.prod),production:woodshopCI.prod,courseId:'',
+    gps:woodshopCI.gps||null,gpsStatus:woodshopCI.gpsStatus||'pending',ts:Date.now()};
+  if(window.fbPush) window.fbPush(rec);
+  ciGoHome();
+  closeHazModal();showFlash('in',t,true,woodshopCI.photo);
+}
+
+/* ── Camera ── */
+function renderCamCtrls(){
+  const c=document.getElementById('hm-ctrls');if(!c)return;
+  c.innerHTML='';
+  if(!woodshopCI.photoDone&&!woodshopCI.camOn){
+    const btn=document.createElement('button');
+    btn.className='cbtn cbtn-start';btn.textContent='📷 開啟相機';
+    btn.addEventListener('click',startCam);c.appendChild(btn);
+  } else if(woodshopCI.camOn&&!woodshopCI.photoDone){
+    const shoot=document.createElement('button');
+    shoot.className='cbtn cbtn-shoot';shoot.textContent='🔴 拍照';
+    shoot.addEventListener('click',shootCam);c.appendChild(shoot);
+    const cancel=document.createElement('button');
+    cancel.className='cbtn cbtn-retry';cancel.textContent='取消';
+    cancel.addEventListener('click',()=>{stopCam();woodshopCI.camOn=false;renderCamCtrls();});
+    c.appendChild(cancel);
+  } else if(woodshopCI.photoDone){
+    const retry=document.createElement('button');
+    retry.className='cbtn cbtn-retry';retry.style.flex='1';retry.textContent='🔄 重拍';
+    retry.addEventListener('click',retakeCam);c.appendChild(retry);
+  }
+}
+async function startCam(){
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280}}});
+    woodshopCI.stream=st;woodshopCI.camOn=true;
+    const v=document.getElementById('hm-v'),ph=document.getElementById('hm-ph');
+    if(v){v.srcObject=st;v.style.display='block';}if(ph)ph.style.display='none';
+    renderCamCtrls();
+  }catch(e){showCamFallback();}
+}
+function showCamFallback(){
+  const c=document.getElementById('hm-ctrls');if(!c)return;
+  c.innerHTML='';
+  const lbl=document.createElement('label');
+  lbl.style.cssText='flex:1;display:block';
+  const div=document.createElement('div');
+  div.className='cbtn cbtn-start';div.style.textAlign='center';div.style.cursor='pointer';
+  div.textContent='📂 從相簿選取';
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';inp.setAttribute('capture','user');inp.style.display='none';
+  inp.addEventListener('change',()=>handleFile(inp));
+  lbl.appendChild(div);lbl.appendChild(inp);c.appendChild(lbl);
+}
+function handleFile(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    woodshopCI.photo=e.target.result;woodshopCI.photoDone=true;
+    const cv=document.getElementById('hm-c'),ph=document.getElementById('hm-ph');
+    if(cv&&ph){const img=new Image();img.onload=()=>{cv.width=img.width;cv.height=img.height;cv.getContext('2d').drawImage(img,0,0);cv.style.display='block';ph.style.display='none';};img.src=e.target.result;}
+    addCamBadge();renderCamCtrls();renderHazFinalBtn();
+  };r.readAsDataURL(f);
+}
+function shootCam(){
+  const v=document.getElementById('hm-v'),cv=document.getElementById('hm-c');if(!v||!cv)return;
+  cv.width=v.videoWidth||640;cv.height=v.videoHeight||480;cv.getContext('2d').drawImage(v,0,0);
+  woodshopCI.photo=cv.toDataURL('image/jpeg',.85);woodshopCI.photoDone=true;
+  stopCam();v.style.display='none';cv.style.display='block';
+  const ph=document.getElementById('hm-ph');if(ph)ph.style.display='none';
+  addCamBadge();renderCamCtrls();renderHazFinalBtn();
+}
+function addCamBadge(){const b=document.getElementById('hm-cam');if(b&&!b.querySelector('.cam-badge')){const d=document.createElement('div');d.className='cam-badge';d.textContent='✓ 已拍照';b.appendChild(d);}}
+function retakeCam(){woodshopCI.photoDone=false;woodshopCI.photo=null;const cv=document.getElementById('hm-c');if(cv)cv.style.display='none';const b=document.getElementById('hm-cam');const bg=b?.querySelector('.cam-badge');if(bg)bg.remove();const ph=document.getElementById('hm-ph');if(ph)ph.style.display='flex';startCam();}
+function stopCam(){if(woodshopCI.stream){woodshopCI.stream.getTracks().forEach(t=>t.stop());woodshopCI.stream=null;}woodshopCI.camOn=false;}
+
+/* ════════════════════════════════════════
+   FLASH
+════════════════════════════════════════ */
+function showFlash(type,time,haz,photo){
+  const isIn=type==='in';
+  const fl=document.getElementById('FLASH');
+  fl.style.background=isIn?'rgba(4,20,4,.97)':'rgba(4,8,20,.97)';
+  const col=isIn?'var(--green)':'var(--blue)';
+  const w=document.getElementById('fl-word');
+  w.textContent=isIn?'上工':'下工';w.style.fontSize=window.innerWidth>=600?'120px':'88px';
+  w.style.color=col;w.style.textShadow=`0 0 70px ${isIn?'rgba(52,199,89,.45)':'rgba(0,122,255,.45)'}`;
+  document.getElementById('fl-name').textContent=woodshopCI.student.name;
+  document.getElementById('fl-name').style.color=col;
+  document.getElementById('fl-detail').textContent=woodshopCI.student.grade+'　'+woodshopCI.student.role;
+  document.getElementById('fl-time').textContent=time;document.getElementById('fl-time').style.color=col;
+  const fh=document.getElementById('fl-haz');
+  fh.innerHTML=(haz?'<div>✓ 職安法第26條五類危害告知已確認記錄</div>':'')+(woodshopCI.prod?`<div style="margin-top:4px;opacity:.8">🎭 ${woodshopCI.prod}</div>`:'')
+  const fp=document.getElementById('fl-photo');
+  if(photo){fp.src=photo;fp.style.display='block';fp.style.borderColor=col;}else fp.style.display='none';
+  fl.style.display='flex';setTimeout(flashDismiss,5000);
+}
+function flashDismiss(){document.getElementById('FLASH').style.display='none';}
+
+/* ════════════════════════════════════════
+   ADMIN – DASHBOARD
+════════════════════════════════════════ */
+function initAdmin(){syncProdDropdowns();renderDash();}
+// 打卡後同步後台：重新渲染目前顯示中的後台頁面
+function syncAdmin(){
+  if(APP.role==='student')return; // 學生角色無後台
+  const fn={dash:renderDash,report:renderReport,attend:renderAttend,hazard:renderHazard,students:renderStudents,courses:renderCourses};
+  const cur=APP.subPage||'dash';
+  if(fn[cur])fn[cur]();
+}
+function renderDash(){
+  const r=RECORDS,td=r.filter(x=>x.day===0);
+  const inC=td.filter(x=>x.type==='in').length,outC=td.filter(x=>x.type==='out').length;
+  const hazC=td.filter(x=>x.hazard).length;
+  const totalIn=r.filter(x=>x.type==='in').length;
+  const hazRate=totalIn?Math.round(r.filter(x=>x.hazard).length/totalIn*100):0;
+  document.getElementById('adm-kpi').innerHTML=[
+    {n:inC,l:'今日上工人次',sub:'較昨日 +1',c:'var(--green)',bg:'rgba(52,199,89,.08)',bd:'rgba(52,199,89,.2)'},
+    {n:Math.max(0,inC-outC),l:'目前在場人數',sub:'佔上工 '+Math.round(Math.max(0,inC-outC)/(inC||1)*100)+'%',c:'var(--purple)',bg:'rgba(191,90,242,.08)',bd:'rgba(191,90,242,.2)'},
+    {n:hazC,l:'今日危害告知',sub:'告知率 '+Math.round(hazC/(inC||1)*100)+'%',c:'var(--gold)',bg:'rgba(245,200,66,.08)',bd:'rgba(245,200,66,.2)'},
+    {n:hazRate+'%',l:'本週合規率',sub:'職安法第26條',c:'var(--teal)',bg:'rgba(50,173,230,.08)',bd:'rgba(50,173,230,.2)'},
+  ].map(k=>`<div class="kpi" style="background:${k.bg};border:1px solid ${k.bd}">
+    <div class="kpi-n" style="color:${k.c}">${k.n}</div>
+    <div class="kpi-l">${k.l}</div>
+    <div class="kpi-sub" style="color:${k.c}">${k.sub}</div>
+  </div>`).join('');
+  // Chart
+  const days=['一','二','三','四','五','六','日'];
+  const cols=Array.from({length:7},(_,i)=>6-i).reverse().map(d=>({
+    inC:r.filter(x=>x.day===d&&x.type==='in').length,
+    outC:r.filter(x=>x.day===d&&x.type==='out').length,
+    hazC:r.filter(x=>x.day===d&&x.hazard).length,
+  }));
+  const maxV=Math.max(...cols.map(c=>c.inC),1);
+  document.getElementById('adm-chart').innerHTML=cols.map((c,i)=>{
+    const isToday=i===6;const op=isToday?'':'55';
+    return `<div class="bar-grp">
+      <div class="bar" style="height:${Math.round(c.inC/maxV*72)}px;background:var(--green)${op}"></div>
+      <div class="bar" style="height:${Math.round(c.outC/maxV*72)}px;background:var(--blue)${op}"></div>
+      <div class="bar" style="height:${Math.round(c.hazC/maxV*72)}px;background:var(--gold)${op}"></div>
+    </div>`;
+  }).join('');
+  const nowD=new Date();
+  document.getElementById('adm-chart-lbl').innerHTML=Array.from({length:7},(_,i)=>{const d=new Date(nowD);d.setDate(d.getDate()-(6-i));const isT=i===6;return `<div class="chart-lbl" style="color:${isT?'var(--gold)':'var(--faint)'}">${days[d.getDay()]}</div>`;}).join('');
+  // Timeline
+  const tl=td.slice(0,7);
+  document.getElementById('adm-tl').innerHTML=tl.length?`<div class="tl-line"></div>`+tl.map(x=>`
+    <div class="tl-item">
+      <div class="tl-dot" style="border-color:${x.type==='in'?'var(--green)':'var(--blue)'}"></div>
+      <div class="tl-t">${x.time}</div>
+      <div class="tl-n">${x.name} <span style="font-size:10px;font-weight:400;color:${x.type==='in'?'var(--green)':'var(--blue)'}">${x.type==='in'?'▲ 上工':'▼ 下工'}</span></div>
+      <div class="tl-m">${x.role}·${x.grade}</div>
+      ${x.hazard?'<div style="font-size:10px;color:rgba(245,200,66,.55);margin-top:1px">✓ 危害告知確認</div>':''}
+    </div>`).join(''):'<div style="font-size:11px;color:var(--faint);padding:12px 0">尚無今日紀錄</div>';
+  // Compliance
+  document.getElementById('adm-comp').innerHTML=[
+    {v:hazRate+'%',ok:hazRate>=90,l:'危害告知完成率',n:'職安法第26條 · 目標≥90%'},
+    {v:'正常',ok:true,l:'紀錄保存狀態',n:'電子簽名+拍照，保存3年'},
+    {v:'完整',ok:true,l:'五類危害涵蓋',n:'物理·化學·生物·人因·意外'},
+    {v:'已執行',ok:true,l:'緊急應變告知',n:'含職安法§37通報義務告知'},
+  ].map(x=>`<div class="comp-item" style="background:${x.ok?'rgba(52,199,89,.06)':'rgba(232,52,10,.06)'};border:1px solid ${x.ok?'rgba(52,199,89,.2)':'rgba(232,52,10,.2)'}">
+    <div class="comp-val" style="color:${x.ok?'var(--green)':'var(--red)'}">${x.ok?'✅':'⚠️'} ${x.v}</div>
+    <div class="comp-lbl">${x.l}</div>
+    <div class="comp-note">${x.n}</div>
+  </div>`).join('');
+}
+
+/* ════════════════════════════════════════
+   ADMIN – REPORT  (學期 / 演出製作 雙模式)
+════════════════════════════════════════ */
+function switchRepMode(m){
+  APP.reportMode=m;
+  document.getElementById('rmode-sem').className='period-tab'+(m==='sem'?' active':'');
+  document.getElementById('rmode-prod').className='period-tab'+(m==='prod'?' active':'');
+  document.getElementById('rep-sem-filter').style.display=m==='sem'?'':'none';
+  document.getElementById('rep-prod-filter').style.display=m==='prod'?'':'none';
+  renderReport();
+}
+function renderReport(){
+  const mode=APP.reportMode;
+  let recs, scopeLabel;
+
+  if(mode==='sem'){
+    const sem=document.getElementById('rep-sem-sel')?.value||'114-2';
+    recs=RECORDS.filter(r=>r.semKey===sem);
+    const semFull={'114-2':'114學年 第2學期','114-1':'114學年 第1學期','113-2':'113學年 第2學期','113-1':'113學年 第1學期'};
+    scopeLabel='📅 報表範圍：'+( semFull[sem]||sem);
+    // Find all productions in this semester
+    const prods=[...new Set(recs.map(r=>r.production).filter(Boolean))];
+    if(prods.length)scopeLabel+='　｜　演出製作：'+prods.join('、');
+  } else {
+    const prod=document.getElementById('rep-prod-sel')?.value||'';
+    const semF=document.getElementById('rep-prod-sem')?.value||'';
+    recs=RECORDS.filter(r=>{
+      const mp=!prod||r.production===prod;
+      const ms=!semF||r.semKey===semF;
+      return mp&&ms;
+    });
+    scopeLabel='🎭 報表範圍：'+(prod||'全部演出製作')+(semF?'　｜　'+semF+'學期':'');
+  }
+
+  const el=document.getElementById('rep-scope-label');
+  if(el)el.textContent=scopeLabel;
+
+  const inRecs=recs.filter(r=>r.type==='in');
+  const outRecs=recs.filter(r=>r.type==='out');
+  const hazRecs=recs.filter(r=>r.hazard);
+  const rate=inRecs.length?Math.round(hazRecs.length/inRecs.length*100):0;
+
+  document.getElementById('rep-kpi').innerHTML=[
+    {n:inRecs.length,l:'上工人次',c:'var(--green)'},
+    {n:outRecs.length,l:'下工人次',c:'var(--blue)'},
+    {n:hazRecs.length,l:'危害告知次',c:'var(--gold)'},
+    {n:rate+'%',l:'合規率',c:rate>=90?'var(--green)':'var(--red)'},
+  ].map(k=>`<div class="kpi" style="background:${k.c}0D;border:1px solid ${k.c}30">
+    <div class="kpi-n" style="color:${k.c}">${k.n}</div>
+    <div class="kpi-l">${k.l}</div>
+  </div>`).join('');
+
+  // Per-student hours bar chart
+  const maxIn=Math.max(...STUDENTS.map(s=>inRecs.filter(r=>r.id===s.id).length),1);
+  document.getElementById('rep-hours').innerHTML=STUDENTS.map(s=>{
+    const sr=inRecs.filter(r=>r.id===s.id);
+    if(!sr.length)return '';
+    const hrs=(sr.length*3.5).toFixed(1);
+    const pct=Math.round(sr.length/maxIn*100);
+    return `<div style="margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <span style="font-family:'Noto Serif TC',serif;font-size:13px;font-weight:700">${s.name}
+          <span style="font-size:10px;font-weight:400;color:var(--dim)"> · ${s.grade} · ${s.role}</span>
+        </span>
+        <span style="font-size:12px;color:var(--gold);font-family:'Bebas Neue',cursive;letter-spacing:1px">${hrs} hr</span>
+      </div>
+      <div style="height:7px;background:var(--bg4);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),var(--teal));border-radius:4px;transition:width .6s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--faint);margin-top:2px">${sr.length} 次上工</div>
+    </div>`;
+  }).join('');
+
+  // ── 每日上工時數統計 ──
+  const dailyMap = {};
+  recs.forEach(r => {
+    if(!r.date) return;
+    const d = r.date; // "YYYY/MM/DD" 格式
+    if(!dailyMap[d]) dailyMap[d] = {in:[], out:[]};
+    if(r.type==='in')  dailyMap[d].in.push({...r, tsMs: r.ts ? new Date(r.ts).getTime() : 0});
+    if(r.type==='out') dailyMap[d].out.push({...r, tsMs: r.ts ? new Date(r.ts).getTime() : 0});
+  });
+  const dailyDates = Object.keys(dailyMap).sort();
+  const dailyHours = dailyDates.map(d => {
+    const ins  = dailyMap[d].in;
+    const outs = dailyMap[d].out;
+    let totalMs = 0;
+    ins.forEach(inR => {
+      const match = outs.find(o => o.id===inR.id && o.tsMs > inR.tsMs);
+      totalMs += match ? (match.tsMs - inR.tsMs) : 3.5*3600000;
+    });
+    return { date:d, hrs:totalMs/3600000, count:ins.length };
+  });
+  const maxDailyHrs = Math.max(...dailyHours.map(d=>d.hrs), 1);
+  const dailyLabelEl = document.getElementById('rep-daily-label');
+  if(dailyLabelEl) dailyLabelEl.textContent = dailyHours.length ? `共 ${dailyHours.length} 個工作日` : '';
+  document.getElementById('rep-daily-hours').innerHTML = dailyHours.length ? dailyHours.map(d => {
+    const pct = Math.round(d.hrs/maxDailyHrs*100);
+    const weekDay = ['日','一','二','三','四','五','六'][new Date(d.date.replace(/\//g,'-')+'T12:00:00').getDay()];
+    const dateLabel = d.date.slice(5)+'('+weekDay+')';
+    const col = d.hrs>=6?'var(--gold)':d.hrs>=3?'var(--green)':'var(--teal)';
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--text)">${dateLabel}</span>
+        <div>
+          <span style="font-family:'Bebas Neue',cursive;font-size:20px;color:${col}">${d.hrs.toFixed(1)}</span>
+          <span style="font-size:10px;color:var(--dim);margin-left:2px">hr</span>
+          <span style="font-size:10px;color:var(--faint);margin-left:8px">${d.count} 人次</span>
+        </div>
+      </div>
+      <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${col},${col}99);border-radius:4px;transition:width .6s"></div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="color:var(--faint);font-size:12px;padding:12px 0;text-align:center">此範圍內無出勤紀錄</div>';
+
+  // Haz compliance per student
+  document.getElementById('rep-haz-rate').innerHTML=STUDENTS.map(s=>{
+    const si=inRecs.filter(r=>r.id===s.id);
+    const sh=hazRecs.filter(r=>r.id===s.id);
+    if(!si.length)return '';
+    const rt=Math.round(sh.length/si.length*100);
+    const ok=rt>=90;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd2)">
+      <div class="avatar-sm" style="font-family:'Noto Serif TC',serif">${s.name[0]}</div>
+      <div style="flex:1">
+        <div style="font-family:'Noto Serif TC',serif;font-size:13px;font-weight:700">${s.name}</div>
+        <div style="font-size:10px;color:var(--faint)">${sh.length}/${si.length} 次確認</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:1px;color:${ok?'var(--green)':'var(--red)'}">${rt}%</div>
+        <div style="font-size:11px">${ok?'✅ 合規':'⚠️ 待改善'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Per-course/production breakdown
+  const courses=COURSES.filter(c=>{
+    if(mode==='sem'){const sem=document.getElementById('rep-sem-sel')?.value||'114-2';return c.sem===sem;}
+    else{const prod=document.getElementById('rep-prod-sel')?.value||'';const semF=document.getElementById('rep-prod-sem')?.value||'';return(!prod||c.production===prod)&&(!semF||c.sem===semF);}
+  });
+  const prodColors={'作業展':'var(--blue)','藝術季':'var(--purple)','畢業製作':'var(--gold)','校慶展演':'var(--orange)','聯合公演':'var(--teal)','期中展':'var(--green)','其他自主製作':'var(--faint)'};
+  document.getElementById('rep-by-course').innerHTML=courses.length?courses.map(c=>{
+    const cr=inRecs.filter(r=>r.courseId===c.id);
+    const ch=hazRecs.filter(r=>r.courseId===c.id);
+    const pct=cr.length?Math.round(ch.length/cr.length*100):0;
+    const pc=prodColors[c.production]||'var(--gold)';
+    return `<div style="padding:11px 0;border-bottom:1px solid var(--bd2)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px">
+        <div>
+          <div style="font-size:13px;font-weight:800">${c.name}</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:2px">🧑‍🏫 ${c.teacher}　📅 ${c.schedule}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+          <span class="pill" style="background:${pc}18;color:${pc};border:1px solid ${pc}30">🎭 ${c.production||'—'}</span>
+          <span style="font-size:10px;color:var(--faint)">${c.sem}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:11px;color:var(--faint)">上工 <b style="color:var(--tx)">${cr.length}</b> 次</span>
+        <span style="font-size:11px;color:var(--faint)">學生 <b style="color:var(--tx)">${c.students.length}</b> 人</span>
+        <span style="font-size:11px;color:var(--faint)">合規 <b style="color:${pct>=90?'var(--green)':'var(--red)'}">${pct}%</b></span>
+      </div>
+      <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${pc};opacity:.8;border-radius:3px;transition:width .6s"></div>
+      </div>
+    </div>`;
+  }).join(''):'<div style="text-align:center;padding:20px;font-size:11px;color:var(--faint)">此範圍無課程資料</div>';
+
+  // ── 個人工時彙總 ──
+  renderSummaryTable(recs, scopeLabel);
+}
+
+// 計算個人工時彙總（供 render 和 export 共用）
+function calcPersonalSummary(recs){
+  // 先統一 ts 為毫秒數（可能是 number 或 string）
+  const safeRecs = recs.map(r => ({
+    ...r,
+    tsMs: r.ts ? new Date(r.ts).getTime() : 0
+  }));
+  return STUDENTS.map(s => {
+    const sIn  = safeRecs.filter(r => r.id===s.id && r.type==='in');
+    const sOut = safeRecs.filter(r => r.id===s.id && r.type==='out');
+    const workDays = [...new Set(sIn.map(r => r.date))];
+    let totalMs = 0;
+    sIn.forEach(inR => {
+      const match = sOut.find(o => o.date===inR.date && o.tsMs > inR.tsMs);
+      totalMs += match ? (match.tsMs - inR.tsMs) : 3.5*3600000;
+    });
+    const totalHrs = totalMs / 3600000;
+    const avgHrs   = workDays.length ? totalHrs / workDays.length : 0;
+    return {
+      id: s.id, name: s.name, grade: s.grade, role: s.role,
+      days: workDays.length,
+      sessions: sIn.length,
+      totalHrs,
+      avgHrs,
+      workDays: workDays.sort()
+    };
+  }).filter(s => s.sessions > 0)
+    .sort((a,b) => b.totalHrs - a.totalHrs);
+}
+
+function renderSummaryTable(recs, scopeLabel){
+  const data = calcPersonalSummary(recs);
+  const labelEl = document.getElementById('rep-summary-label');
+  if(labelEl) labelEl.textContent = data.length ? `${data.length} 位學生` : '';
+
+  const el = document.getElementById('rep-summary');
+  if(!el) return;
+  if(!data.length){
+    el.innerHTML = '<div style="text-align:center;padding:20px;font-size:11px;color:var(--faint)">此範圍內無出勤紀錄</div>';
+    return;
+  }
+
+  const maxHrs = Math.max(...data.map(d=>d.totalHrs), 1);
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0;margin-bottom:6px;padding:0 4px">
+      <div style="font-size:10px;color:var(--faint);letter-spacing:1px">姓名</div>
+      <div style="font-size:10px;color:var(--faint);letter-spacing:1px;text-align:center;min-width:44px">工作日</div>
+      <div style="font-size:10px;color:var(--faint);letter-spacing:1px;text-align:center;min-width:44px">人次</div>
+      <div style="font-size:10px;color:var(--faint);letter-spacing:1px;text-align:right;min-width:58px">總工時</div>
+    </div>
+    ${data.map((s,i) => {
+      const pct = Math.round(s.totalHrs/maxHrs*100);
+      const col = s.totalHrs>=20?'var(--gold)':s.totalHrs>=10?'var(--green)':'var(--teal)';
+      return `<div style="padding:10px 4px;border-bottom:1px solid var(--bd2)">
+        <div style="display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:0;margin-bottom:5px">
+          <div>
+            <span style="font-family:'Noto Serif TC',serif;font-size:13px;font-weight:700">${s.name}</span>
+            <span style="font-size:10px;color:var(--faint);margin-left:5px">${s.grade}·${s.role}</span>
+          </div>
+          <div style="text-align:center;min-width:44px;font-size:12px;color:var(--text)">${s.days}<span style="font-size:10px;color:var(--faint)">天</span></div>
+          <div style="text-align:center;min-width:44px;font-size:12px;color:var(--text)">${s.sessions}<span style="font-size:10px;color:var(--faint)">次</span></div>
+          <div style="text-align:right;min-width:58px">
+            <span style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:1px;color:${col}">${s.totalHrs.toFixed(1)}</span>
+            <span style="font-size:10px;color:var(--dim)">hr</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${col},${col}88);border-radius:3px;transition:width .6s"></div>
+          </div>
+          <div style="font-size:10px;color:var(--faint);white-space:nowrap">均 ${s.avgHrs.toFixed(1)}hr/天</div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function exportReportCSV(){
+  const mode=APP.reportMode;
+  let recs, filename;
+  if(mode==='sem'){const sem=document.getElementById('rep-sem-sel')?.value||'114-2';recs=RECORDS.filter(r=>r.semKey===sem);filename='出勤明細_'+sem;}
+  else{const p=document.getElementById('rep-prod-sel')?.value||'';const sf=document.getElementById('rep-prod-sem')?.value||'';recs=RECORDS.filter(r=>(!p||r.production===p)&&(!sf||r.semKey===sf));filename='出勤明細_'+(p||'全部製作');}
+  const csv='姓名,學號,年級,組別,類型,日期,時間,危害告知,學期,演出製作\n'+recs.map(r=>[r.name,r.id,r.grade,r.role,r.type==='in'?'上工':'下工',r.date,r.time,r.hazard?'已確認':'否',r.semKey,r.production||''].join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download=filename+'.csv';a.click();toast('📊 明細 CSV 已下載');
+}
+
+function exportSummaryCSV(){
+  const mode=APP.reportMode;
+  let recs, scopeName;
+  if(mode==='sem'){
+    const sem=document.getElementById('rep-sem-sel')?.value||'114-2';
+    recs=RECORDS.filter(r=>r.semKey===sem);
+    scopeName='學期_'+sem;
+  } else {
+    const p=document.getElementById('rep-prod-sel')?.value||'';
+    const sf=document.getElementById('rep-prod-sem')?.value||'';
+    recs=RECORDS.filter(r=>(!p||r.production===p)&&(!sf||r.semKey===sf));
+    scopeName='製作_'+(p||'全部');
+  }
+  const data = calcPersonalSummary(recs);
+  if(!data.length){toast('⚠ 此範圍內無出勤資料');return;}
+  const rows = [['姓名','學號','年級','組別','工作天數','上工人次','總工時(hr)','平均工時(hr/天)','工作日期列表']];
+  data.forEach(s => {
+    rows.push([
+      s.name, s.id, s.grade, s.role,
+      s.days, s.sessions,
+      s.totalHrs.toFixed(2),
+      s.avgHrs.toFixed(2),
+      '"'+s.workDays.join('、')+'"'
+    ]);
+  });
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='個人工時彙總_'+scopeName+'.csv';
+  a.click();
+  toast('📋 個人工時彙總 CSV 已下載');
+}
+
+/* ════════════════════════════════════════
+   ADMIN – ATTENDANCE
+════════════════════════════════════════ */
+function renderAttend(){
+  const q=(document.getElementById('att-q')?.value||'').toLowerCase();
+  const tp=document.getElementById('att-type')?.value||'';
+  const maxDay=parseInt(document.getElementById('att-day')?.value||'0');
+  const rows=RECORDS.filter(r=>{
+    const mq=!q||(r.name.toLowerCase().includes(q)||r.id.toLowerCase().includes(q));
+    const mt=!tp||r.type===tp;
+    const md=r.day<=maxDay;
+    return mq&&mt&&md;
+  });
+  const tb=document.getElementById('att-body');if(!tb)return;
+  const gpsCell=r=>{
+    if(!r.gpsStatus||r.gpsStatus==='pending')return '<span style="color:var(--faint);font-size:11px">—</span>';
+    if(r.gpsStatus==='ok')return `<span class="pill" style="background:rgba(52,199,89,.1);color:var(--green);border:1px solid rgba(52,199,89,.2)">✅ 在場 ${r.gps?.dist??''}m</span>`;
+    if(r.gpsStatus==='outside')return `<span class="pill" style="background:rgba(255,149,0,.1);color:var(--orange);border:1px solid rgba(255,149,0,.2)">⚠️ 距教室 ${r.gps?.dist??'?'}m</span>`;
+    if(r.gpsStatus==='denied')return '<span style="color:var(--red);font-size:11px">🔒 未授權</span>';
+    return '<span style="color:var(--faint);font-size:11px">無訊號</span>';
+  };
+  tb.innerHTML=rows.map(r=>`<tr>
+    <td>${r.photo?`<img src="${r.photo}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid ${r.type==='in'?'var(--green)':'var(--blue)'}">`:
+      `<div class="avatar-sm">${r.type==='in'?'🟢':'🔵'}</div>`}</td>
+    <td style="font-family:'Noto Serif TC',serif;font-weight:700">${r.name}</td>
+    <td style="font-family:'Bebas Neue',cursive;letter-spacing:1px;color:var(--dim)">${r.id}</td>
+    <td style="color:var(--dim);font-size:11px">${r.grade}·${r.role}</td>
+    <td><span class="pill" style="background:${r.type==='in'?'rgba(52,199,89,.12)':'rgba(0,122,255,.12)'};color:${r.type==='in'?'var(--green)':'var(--blue)'};border:1px solid ${r.type==='in'?'rgba(52,199,89,.25)':'rgba(0,122,255,.25)'}">${r.type==='in'?'▲ 上工':'▼ 下工'}</span></td>
+    <td style="font-family:'Bebas Neue',cursive;letter-spacing:1px;color:var(--dim);font-size:11px">${r.date} ${r.time}</td>
+    <td>${r.hazard?`<span class="pill" style="background:rgba(245,200,66,.1);color:var(--gold);border:1px solid rgba(245,200,66,.2)">✓ 已確認</span>`:'<span style="color:var(--faint);font-size:11px">—</span>'}</td>
+    <td>${gpsCell(r)}</td>
+    <td style="font-size:11px;color:var(--dim);max-width:180px;white-space:pre-wrap;line-height:1.5">${r.worklog?`<span style="color:var(--tx)">${r.worklog}</span>`:'<span style="color:var(--faint)">—</span>'}</td>
+    <td>${r.workphoto?`<a href="${r.workphoto}" target="_blank"><img src="${r.workphoto}" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--bd);cursor:pointer"></a>`:'<span style="color:var(--faint);font-size:11px">—</span>'}</td>
+  </tr>`).join('');
+  const s=document.getElementById('att-sum');if(s)s.textContent=`共 ${rows.length} 筆紀錄`;
+}
+function exportCSV(){
+  const rows=RECORDS;
+  const csv='姓名,學號,年級,組別,類型,日期,時間,危害告知,GPS狀態,距教室(m),工作日誌\n'+rows.map(r=>[r.name,r.id,r.grade,r.role,r.type==='in'?'上工':'下工',r.date,r.time,r.hazard?'已確認':'否',r.gpsStatus||'—',r.gps?.dist??'—',`"${(r.worklog||'').replace(/"/g,'""')}"`].join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download='出勤紀錄.csv';a.click();toast('📊 CSV 已下載');
+}
+
+/* ════════════════════════════════════════
+   ADMIN – HAZARD LOG
+════════════════════════════════════════ */
+function renderHazard(){
+  const q=(document.getElementById('haz-q')?.value||'').toLowerCase();
+  const st=document.getElementById('haz-st')?.value||'';
+  const inRecs=RECORDS.filter(r=>r.type==='in');
+  const rows=inRecs.filter(r=>{
+    const mq=!q||r.name.toLowerCase().includes(q);
+    const ms=!st||(st==='ok'&&r.hazard)||(st==='no'&&!r.hazard);
+    return mq&&ms;
+  });
+  const el=document.getElementById('haz-list');if(!el)return;
+  el.innerHTML=rows.length?rows.map(r=>`
+    <div class="haz-row">
+      <div class="haz-head">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="avatar-sm" style="font-family:'Noto Serif TC',serif">${r.name[0]}</div>
+          <div>
+            <div style="font-family:'Noto Serif TC',serif;font-size:13px;font-weight:700">${r.name}</div>
+            <div style="font-size:10px;color:var(--faint)">${r.id}·${r.grade}·${r.role}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:700;color:${r.hazard?'var(--green)':'var(--faint)'}">${r.hazard?'✓ 已確認':'○ 未確認'}</div>
+          <div style="font-family:'Bebas Neue',cursive;font-size:10px;letter-spacing:1px;color:var(--faint);margin-top:2px">${r.date} ${r.time}</div>
+        </div>
+      </div>
+      ${r.hazard?`<div style="font-size:11px;color:var(--dim);line-height:1.7">物理性 ✓　化學性 ✓　生物性 ✓　人因工程 ✓　作業意外 ✓<br>確認方式：電子簽名＋本人拍照存證</div>
+        <div style="margin-top:5px">
+          <span class="haz-tag">📄 職安法第26條合規</span>
+          <span class="haz-tag">🗓 保存至 ${saveUntil()}</span>
+        </div>`:''
+      }
+    </div>`).join(''):'<div style="text-align:center;padding:24px;font-size:11px;color:var(--faint)">無符合條件的紀錄</div>';
+  const s=document.getElementById('haz-sum');
+  const ok=rows.filter(r=>r.hazard).length;
+  if(s)s.textContent=`共 ${rows.length} 筆 · 已確認 ${ok} 筆 · 未確認 ${rows.length-ok} 筆`;
+}
+function saveUntil(){const d=new Date();d.setFullYear(d.getFullYear()+3);return d.getFullYear()+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+(d.getDate()).toString().padStart(2,'0');}
+
+/* ════════════════════════════════════════
+   ADMIN – STUDENTS
+════════════════════════════════════════ */
+function renderStudents(){
+  const q=(document.getElementById('stu-q')?.value||'').toLowerCase();
+  const gr=document.getElementById('stu-grade')?.value||'';
+  const ro=document.getElementById('stu-role')?.value||'';
+  const list=STUDENTS.filter(s=>(!q||(s.name.includes(q)||s.id.toLowerCase().includes(q)))&&(!gr||s.grade===gr)&&(!ro||s.role===ro));
+  const rc={舞台組:'var(--blue)',燈光組:'var(--gold)',服裝組:'var(--purple)',音響組:'var(--teal)'};
+  const el=document.getElementById('stu-list');if(!el)return;
+  el.innerHTML=list.length?list.map(s=>{
+    const recs=RECORDS.filter(r=>r.id===s.id);
+    const inC=recs.filter(r=>r.type==='in').length;
+    const hazC=recs.filter(r=>r.hazard).length;
+    const rate=inC?Math.round(hazC/inC*100):0;
+    const c=rc[s.role]||'var(--gold)';
+    return `<div class="stu-row">
+      <div class="stu-av">${s.name[0]}</div>
+      <div class="stu-info">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="stu-name">${s.name}</span>
+          <span class="pill" style="background:${c}18;color:${c};border:1px solid ${c}30;font-size:10px;padding:1px 7px">${s.role}</span>
+        </div>
+        <div class="stu-meta">${s.id} · ${s.grade}</div>
+        <div class="stu-stats-row">
+          <div class="stu-stat">上工 <b>${inC}</b></div>
+          <div class="stu-stat">告知 <b style="color:var(--gold)">${hazC}</b></div>
+          <div class="stu-stat">合規 <b style="color:${rate>=90?'var(--green)':'var(--red)'}">${rate}%</b></div>
+        </div>
+      </div>
+      <div class="icon-btn" onclick="openDrawer('stu','${s.id}')">✏️</div>
+    </div>`;
+  }).join(''):'<div style="text-align:center;padding:24px;font-size:11px;color:var(--faint)">無符合條件的學生</div>';
+}
+
+/* ════════════════════════════════════════
+   ADMIN – COURSES
+════════════════════════════════════════ */
+function renderCourses(){
+  renderProdChips();// 每次進課程頁都同步製作管理面板
+  const q=(document.getElementById('crs-q')?.value||'').toLowerCase();
+  const sem=document.getElementById('crs-sem')?.value||'';
+  const prod=document.getElementById('crs-prod')?.value||'';
+  const st=document.getElementById('crs-status')?.value||'';
+  const list=COURSES.filter(c=>
+    (!q||c.name.toLowerCase().includes(q)||c.teacher.toLowerCase().includes(q))&&
+    (!sem||c.sem===sem)&&(!prod||c.production===prod)&&(!st||c.status===st));
+  const el=document.getElementById('crs-list');if(!el)return;
+  const statusColor={active:'var(--green)',ended:'var(--faint)'};
+  const statusLabel={active:'進行中',ended:'已結束'};
+  el.innerHTML=list.length?list.map(c=>{
+    const cRecs=RECORDS.filter(r=>c.students.includes(r.id)&&r.type==='in');
+    const hazRate=cRecs.length?Math.round(RECORDS.filter(r=>c.students.includes(r.id)&&r.hazard).length/cRecs.length*100):0;
+    const stuNames=c.students.map(id=>STUDENTS.find(s=>s.id===id)?.name||id).join('、');
+    const pc=prodColor(c.production);
+    return `<div class="course-card">
+      <div class="course-stripe" style="background:${statusColor[c.status]}"></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <div>
+          <div class="course-name">${c.name}</div>
+          <div class="course-meta">📅 ${c.schedule}　🧑‍🏫 ${c.teacher}　📍 ${c.room}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          <span class="pill" style="background:${statusColor[c.status]}18;color:${statusColor[c.status]};border:1px solid ${statusColor[c.status]}30">${statusLabel[c.status]}</span>
+          <span class="pill" style="background:${pc}18;color:${pc};border:1px solid ${pc}30">🎭 ${c.production||'—'}</span>
+          <span style="font-size:10px;color:var(--faint)">🎓 ${c.sem}</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:8px;line-height:1.6">👥 修課學生：${stuNames}</div>
+      <div class="course-stats">
+        <div class="course-stat">學生數 <b>${c.students.length}</b></div>
+        <div class="course-stat">出勤紀錄 <b>${cRecs.length}</b> 筆</div>
+        <div class="course-stat">危害合規 <b style="color:${hazRate>=90?'var(--green)':'var(--red)'}">${hazRate}%</b></div>
+        ${c.hazardRequired?'<span class="haz-tag" style="margin-top:0">⚠ 危害告知必須</span>':''}
+      </div>
+      <div class="course-actions">
+        <button class="cact-btn" style="background:var(--bg4);border:1px solid var(--bd);color:var(--dim)" onclick="openDrawer('course','${c.id}')">✏️ 編輯</button>
+        <button class="cact-btn" style="background:rgba(52,199,89,.1);border:1px solid rgba(52,199,89,.2);color:var(--green)" onclick="quickCourseReport('${c.id}')">📊 出勤報表</button>
+        <button class="cact-btn" style="background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.2);color:var(--gold)" onclick="toast('📄 告知清冊產生中…')">📄 告知清冊</button>
+      </div>
+    </div>`;
+  }).join(''):'<div style="text-align:center;padding:28px;font-size:11px;color:var(--faint)">無符合條件的課程</div>';
+}
+function quickCourseReport(cid){
+  const c=COURSES.find(x=>x.id===cid);if(!c)return;
+  APP.reportMode='prod';
+  switchSub('report');
+  setTimeout(()=>{
+    switchRepMode('prod');
+    const ps=document.getElementById('rep-prod-sel');
+    const ss=document.getElementById('rep-prod-sem');
+    if(ps)ps.value=c.production||'';
+    if(ss)ss.value=c.sem||'';
+    renderReport();
+  },80);
+}
+
+/* ════════════════════════════════════════
+   DRAWER
+════════════════════════════════════════ */
+function openDrawer(type,id){
+  APP.editType=type;APP.editTarget=id;
+  document.getElementById('DRW-BG').style.display='block';
+  if(type==='prod'){
+    // 新增演出製作
+    document.getElementById('drw-ttl').textContent='新增演出製作';
+    document.getElementById('drw-body').innerHTML=`
+      <div class="drw-lbl">製作名稱</div>
+      <input class="drw-inp" id="dp-name" type="text" placeholder="例：作業展、藝術季、畢業製作" autocomplete="off">
+      <div class="drw-lbl">所屬學期</div>
+      <select class="drw-inp" id="dp-sem">
+        ${semOptions('',true)}
+      </select>
+      <div class="drw-lbl">標籤顏色</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px" id="dp-colors">
+        ${PROD_PALETTE.map((c,i)=>`<div onclick="dpSelColor(${i})" id="dpc-${i}" style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:all .18s"></div>`).join('')}
+      </div>
+      <input type="hidden" id="dp-color" value="${PROD_PALETTE[0]}">
+      <div class="drw-row" style="margin-top:4px">
+        <button class="drw-cancel" onclick="closeDrawer()">取消</button>
+        <button class="drw-save" onclick="saveProd()">新增</button>
+      </div>`;
+    // Highlight first color by default
+    setTimeout(()=>{
+      const el=document.getElementById('dpc-0');
+      if(el)el.style.borderColor='#fff';
+    },10);
+  } else if(type==='stu'){
+    const s=id?STUDENTS.find(x=>x.id===id):null;
+    document.getElementById('drw-ttl').textContent=s?'編輯學生資料':'新增學生';
+    document.getElementById('drw-body').innerHTML=`
+      <div class="drw-lbl">學號</div>
+      <input class="drw-inp" id="di-id" type="text" value="${s?.id||''}" placeholder="T11308" ${s?'disabled':''} autocomplete="off">
+      <div class="drw-lbl">姓名</div>
+      <input class="drw-inp" id="di-name" type="text" value="${s?.name||''}" placeholder="王小明" autocomplete="off">
+      <div style="display:flex;gap:8px">
+        <div style="flex:1"><div class="drw-lbl">年級</div>
+          <select class="drw-inp" id="di-grade">
+            ${['大一戊','大二戊','大三戊','大四戊'].map(g=>`<option${s?.grade===g?' selected':''}>${g}</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:1"><div class="drw-lbl">組別</div>
+          <select class="drw-inp" id="di-role">
+            ${['舞台組','燈光組','服裝組','音響組'].map(r=>`<option${s?.role===r?' selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="drw-row">
+        <button class="drw-cancel" onclick="closeDrawer()">取消</button>
+        <button class="drw-save" onclick="saveStu()">儲存</button>
+      </div>
+      ${s?`<button class="drw-danger" onclick="deleteStu('${s.id}')">🗑 刪除此學生</button>`:''}`;
+  } else if(type==='course'){
+    const c=id?COURSES.find(x=>x.id===id):null;
+    document.getElementById('drw-ttl').textContent=c?'編輯課程':'新增課程';
+    document.getElementById('drw-body').innerHTML=`
+      <div class="drw-lbl">課程名稱</div>
+      <input class="drw-inp" id="dc-name" type="text" value="${c?.name||''}" placeholder="展演製作實習（一）" autocomplete="off">
+      <div style="display:flex;gap:8px">
+        <div style="flex:1"><div class="drw-lbl">學期</div>
+          <select class="drw-inp" id="dc-sem">
+            ${semOptions(c?.sem||'114-2')}
+          </select>
+        </div>
+        <div style="flex:1"><div class="drw-lbl">狀態</div>
+          <select class="drw-inp" id="dc-status">
+            <option value="active"${c?.status==='active'?' selected':''}>進行中</option>
+            <option value="ended"${c?.status==='ended'?' selected':''}>已結束</option>
+          </select>
+        </div>
+      </div>
+      <div class="drw-lbl">演出製作名稱</div>
+      <select class="drw-inp" id="dc-prod">
+        <option value="">── 請選擇 ──</option>
+        ${PRODUCTIONS.map(p=>`<option value="${p.name}"${c?.production===p.name?' selected':''}>${p.name}</option>`).join('')}
+      </select>
+      <div class="drw-lbl">授課教師</div>
+      <input class="drw-inp" id="dc-teacher" type="text" value="${c?.teacher||''}" placeholder="王明德" autocomplete="off">
+      <div class="drw-lbl">上課時間</div>
+      <input class="drw-inp" id="dc-schedule" type="text" value="${c?.schedule||''}" placeholder="週二 09:00–12:00" autocomplete="off">
+      <div class="drw-lbl">修課學生</div>
+      <div id="dc-stus" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${STUDENTS.map(s=>`<label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" id="dc-s-${s.id}" ${c?.students.includes(s.id)?'checked':''}>
+          <span style="font-size:12px;color:var(--dim)">${s.name}</span>
+        </label>`).join('')}
+      </div>
+      <div class="drw-row">
+        <button class="drw-cancel" onclick="closeDrawer()">取消</button>
+        <button class="drw-save" onclick="saveCourse()">儲存</button>
+      </div>
+      ${c?`<button class="drw-danger" onclick="deleteCourse('${c.id}')">🗑 刪除此課程</button>`:''}`;
+  }
+}
+function closeDrawer(){document.getElementById('DRW-BG').style.display='none';}
+
+function dpSelColor(idx){
+  document.getElementById('dp-color').value=PROD_PALETTE[idx];
+  PROD_PALETTE.forEach((_,i)=>{
+    const el=document.getElementById('dpc-'+i);
+    if(el)el.style.borderColor=i===idx?'#fff':'transparent';
+  });
+}
+function saveProd(){
+  const name=document.getElementById('dp-name').value.trim();
+  const sem=document.getElementById('dp-sem').value;
+  const color=document.getElementById('dp-color').value||PROD_PALETTE[0];
+  if(!name){toast('請填寫製作名稱');return;}
+  if(PRODUCTIONS.find(p=>p.name===name)){toast('⚠ 製作名稱已存在');return;}
+  // 先更新本地，立即反映在打卡頁
+  const newProd={name,color,sem};
+  window.PRODUCTIONS.push(newProd);
+  buildCIProdPills();
+  syncProdDropdowns();
+  // 再寫 Firebase
+  if(window.fbPushProd) window.fbPushProd({name,color,sem});
+  closeDrawer();
+  toast('✅ 已新增演出製作：'+name);
+}
+
+async function saveStu(){
+  const id=document.getElementById('di-id').value.trim().toUpperCase();
+  const name=document.getElementById('di-name').value.trim();
+  const grade=document.getElementById('di-grade').value;
+  const role=document.getElementById('di-role').value;
+  if(!id||!name){toast('請填寫學號與姓名');return;}
+  if(!APP.editTarget && STUDENTS.find(s=>s.id===id)){toast('⚠ 學號已存在');return;}
+  const stu={id,name,grade,role};
+  const btn=document.querySelector('.drw-save');
+  if(btn){btn.disabled=true;btn.textContent='儲存中…';}
+  try{
+    // 先更新本地，立即反映
+    const i=STUDENTS.findIndex(s=>s.id===id);
+    if(i>=0) STUDENTS[i]=stu; else STUDENTS.push(stu);
+    renderStudents(); buildCIPills();
+    // 寫入 Firebase（fbSaveStu 內部會再 loadStudents 確認同步）
+    if(window.fbSaveStu) window.fbSaveStu(stu);
+    toast(APP.editTarget?'✅ 已更新 '+name:'✅ 已新增 '+name);
+    closeDrawer();
+  }catch(e){
+    console.error('saveStu error',e);
+    toast('⚠ 儲存失敗：'+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='儲存';}
+  }
+}
+async function deleteStu(id){
+  const s=STUDENTS.find(x=>x.id===id);if(!s)return;
+  if(!confirm('確定刪除 '+s.name+'？'))return;
+  if(window.fbDeleteStu) window.fbDeleteStu(id);
+  else window.STUDENTS=STUDENTS.filter(x=>x.id!==id);
+  closeDrawer();renderStudents();buildCIPills();toast('🗑 已刪除 '+s.name);
+}
+function resetDefaultStudents(){
+  if(!confirm('確定將學生名單重設為預設 15 位學生？\n目前的自訂資料將被覆蓋。'))return;
+  const defaults=[
+    {id:'11155007',name:'戴君諺',grade:'大四戊',role:'舞台組'},
+    {id:'11155013',name:'尚明君',grade:'大四戊',role:'舞台組'},
+    {id:'11155026',name:'楊諭錡',grade:'大四戊',role:'舞台組'},
+    {id:'11255009',name:'羅哲司',grade:'大三戊',role:'舞台組'},
+    {id:'11255025',name:'陳霓',  grade:'大三戊',role:'舞台組'},
+    {id:'11255026',name:'黃嫣琇',grade:'大三戊',role:'舞台組'},
+    {id:'11255030',name:'林昱妍',grade:'大三戊',role:'舞台組'},
+    {id:'11255024',name:'陳楠沛',grade:'大二戊',role:'舞台組'},
+    {id:'11355003',name:'陳子義',grade:'大二戊',role:'舞台組'},
+    {id:'11355008',name:'沈佳蕊',grade:'大二戊',role:'舞台組'},
+    {id:'11355017',name:'陳思安',grade:'大二戊',role:'舞台組'},
+    {id:'11355019',name:'黃翠瑄',grade:'大二戊',role:'舞台組'},
+    {id:'11355021',name:'黃琪棻',grade:'大二戊',role:'舞台組'},
+    {id:'11355031',name:'黃慧恩',grade:'大二戊',role:'舞台組'},
+    {id:'11455991',name:'朱紘希',grade:'大三戊',role:'舞台組'},
+  ];
+  const fb=window._fbRefs;
+  if(fb){
+    fb.remove(fb.ref('students')).then(()=>{
+      defaults.forEach(s=>fb.set(fb.ref('students/'+s.id),s));
+      toast('✅ 已重設 '+defaults.length+' 位預設學生');
+    }).catch(e=>{console.error(e);toast('⚠ 重設失敗：'+e.message);});
+  } else {
+    window.STUDENTS=[...defaults];
+    renderStudents();buildCIPills();
+    toast('✅ 已重設（離線模式）'+defaults.length+' 位學生');
+  }
+}
+function saveCourse(){
+  const name=document.getElementById('dc-name').value.trim();
+  const teacher=document.getElementById('dc-teacher').value.trim();
+  const sem=document.getElementById('dc-sem').value;
+  const status=document.getElementById('dc-status').value;
+  const production=document.getElementById('dc-prod').value;
+  const schedule=document.getElementById('dc-schedule').value.trim();
+  const students=STUDENTS.filter(s=>document.getElementById('dc-s-'+s.id)?.checked).map(s=>s.id);
+  if(!name){toast('請填寫課程名稱');return;}
+  if(APP.editTarget){
+    const i=COURSES.findIndex(c=>c.id===APP.editTarget);
+    const updated={...(i>=0?COURSES[i]:{}),name,teacher,sem,status,production,schedule,students,room:'木工教室',hazardRequired:true};
+    if(window.fbSaveCourse) window.fbSaveCourse(updated);
+    else if(i>=0) COURSES[i]=updated;
+    toast('✅ 課程已更新');
+  }else{
+    const newId='C'+String(COURSES.length+1).padStart(3,'0');
+    const newCrs={id:newId,name,teacher,sem,status,production,schedule,students,room:'木工教室',hazardRequired:true};
+    if(window.fbSaveCourse) window.fbSaveCourse(newCrs);
+    else COURSES.push(newCrs);
+    toast('✅ 課程已新增');
+  }
+  closeDrawer();renderCourses();
+}
+function deleteCourse(id){
+  const c=COURSES.find(x=>x.id===id);if(!c)return;
+  if(!confirm('確定刪除課程「'+c.name+'」？'))return;
+  if(c.fbKey && window.fbDeleteCourse) window.fbDeleteCourse(c.fbKey);
+  else window.COURSES=COURSES.filter(x=>x.id!==id);
+  closeDrawer();renderCourses();toast('🗑 已刪除課程');
+}
+
+/* ════════════════════════════════════════
+   資料歸零
+════════════════════════════════════════ */
+function resetToday(){
+  if(!confirm('確定清除今日所有打卡紀錄？\n此操作無法復原。'))return;
+  if(window.fbClearToday){
+    window.fbClearToday().then(()=>toast('✅ 今日紀錄已清除'));
+  }
+}
+function resetAll(){
+  if(!confirm('⚠ 確定清除「全部」出勤與危害告知紀錄？\n此操作無法復原，所有歷史資料將全部消失。'))return;
+  if(!confirm('再次確認：真的要清除全部資料嗎？'))return;
+  if(window.fbClearAll){
+    window.fbClearAll();
+    toast('✅ 全部紀錄已清除');
+  }
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function toast(msg){
+  const t=document.getElementById('TOAST');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+<!-- ══ PWA INSTALL BANNER ══ -->
+<div class="install-banner" id="INSTALL-BANNER">
+  <div class="install-icon">🪚</div>
+  <div class="install-text">
+    <div class="install-title">安裝到主畫面</div>
+    <div class="install-sub">離線可用 · 快速開啟 · 像原生 App 一樣</div>
+  </div>
+  <button class="install-btn" id="install-btn" onclick="doInstall()">安裝</button>
+  <button class="install-close" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- ══ iOS INSTALL GUIDE ══ -->
+<div id="IOS-GUIDE" style="display:none">
+  <div class="ios-guide">
+    <div class="ios-guide-bg" onclick="document.getElementById('IOS-GUIDE').style.display='none'"></div>
+    <div class="ios-guide-card">
+      <div class="ios-guide-title">📲 安裝到 iPhone / iPad</div>
+      <div class="ios-step"><div class="ios-step-n">1</div><div>點擊 Safari 底部的 <strong style="color:var(--gold)">分享按鈕</strong>（方塊加箭頭 ↑）</div></div>
+      <div class="ios-step"><div class="ios-step-n">2</div><div>在選單中找到 <strong style="color:var(--gold)">「加入主畫面」</strong>（Add to Home Screen）</div></div>
+      <div class="ios-step"><div class="ios-step-n">3</div><div>確認名稱後點擊右上角 <strong style="color:var(--gold)">「新增」</strong>，App 圖示就會出現在桌面</div></div>
+      <div class="ios-step" style="margin-bottom:0"><div class="ios-step-n">✓</div><div style="color:rgba(52,199,89,.8)">之後直接從桌面開啟，全螢幕運行，不需要瀏覽器</div></div>
+      <button class="ios-close-btn" onclick="document.getElementById('IOS-GUIDE').style.display='none'">知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   PWA — MANIFEST (inline blob)
+════════════════════════════════════════ */
+(function(){
+  const manifest={
+    name:"國立臺灣戲曲學院 木工教室管理系統",
+    short_name:"木工教室",
+    description:"NTCA 劇場藝術學系 木工教室出勤打卡與職安危害告知系統",
+    start_url:"./",
+    display:"standalone",
+    orientation:"portrait-primary",
+    background_color:"#0D0A06",
+    theme_color:"#0D0A06",
+    lang:"zh-TW",
+    icons:[
+      {src:makeIcon(192),sizes:"192x192",type:"image/png",purpose:"any maskable"},
+      {src:makeIcon(512),sizes:"512x512",type:"image/png",purpose:"any maskable"}
+    ],
+    shortcuts:[
+      {name:"打卡站",short_name:"打卡",description:"學生上工/下工打卡",url:"./?role=student"},
+      {name:"後台管理",short_name:"後台",description:"教師管理後台",url:"./?role=teacher"}
+    ]
+  };
+  function makeIcon(sz){
+    try{
+      const c=document.createElement('canvas');c.width=sz;c.height=sz;
+      const ctx=c.getContext('2d');
+      // Background
+      ctx.fillStyle='#0D0A06';ctx.fillRect(0,0,sz,sz);
+      // Rounded rect mask
+      const r=sz*.18;ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(sz-r,0);ctx.quadraticCurveTo(sz,0,sz,r);
+      ctx.lineTo(sz,sz-r);ctx.quadraticCurveTo(sz,sz,sz-r,sz);ctx.lineTo(r,sz);
+      ctx.quadraticCurveTo(0,sz,0,sz-r);ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);
+      ctx.closePath();ctx.fillStyle='#141008';ctx.fill();
+      // Gold border
+      ctx.strokeStyle='rgba(245,200,66,.4)';ctx.lineWidth=sz*.015;ctx.stroke();
+      // 🪚 emoji
+      ctx.font=`${sz*.45}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🪚',sz/2,sz/2+sz*.02);
+      // NTCA label
+      ctx.font=`bold ${sz*.07}px 'Arial',sans-serif`;
+      ctx.fillStyle='rgba(245,200,66,.6)';
+      ctx.fillText('NTCA WOODSHOP',sz/2,sz*.82);
+      return c.toDataURL('image/png');
+    }catch(e){return '';}
+  }
+  // inject icons
+  const ic192=makeIcon(192);
+  if(ic192){
+    document.getElementById('apple-touch-icon').href=ic192;
+    manifest.icons[0].src=ic192;
+    manifest.icons[1].src=makeIcon(512)||ic192;
+  }
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
+})();
+
+/* ════════════════════════════════════════
+   PWA — SERVICE WORKER (inline)
+════════════════════════════════════════ */
+const SW_SRC=`
+const CACHE='ntca-woodshop-v1';
+const ASSETS=['/'];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
+    if(res&&res.status===200&&res.type==='basic'){
+      const clone=res.clone();
+      caches.open(CACHE).then(c=>c.put(e.request,clone));
+    }
+    return res;
+  }).catch(()=>caches.match('/'))));
+});
+`;
+if('serviceWorker' in navigator){
+  const swBlob=new Blob([SW_SRC],{type:'application/javascript'});
+  const swURL=URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL,{scope:'./'}).then(reg=>{
+    console.log('[PWA] ServiceWorker registered',reg.scope);
+  }).catch(err=>console.warn('[PWA] SW registration failed:',err));
+}
+
+/* ════════════════════════════════════════
+   PWA — INSTALL PROMPT
+════════════════════════════════════════ */
+let _installPrompt=null;
+const _isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent)&&!/CriOS|FxiOS/i.test(navigator.userAgent);
+const _isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const _isStandalone=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+const _dismissed=sessionStorage.getItem('install-dismissed');
+
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _installPrompt=e;
+  if(!_isStandalone&&!_dismissed) showInstallBanner('android');
+});
+
+function showInstallBanner(type){
+  const banner=document.getElementById('INSTALL-BANNER');
+  if(!banner)return;
+  if(type==='ios'){
+    document.getElementById('install-btn').textContent='查看步驟';
+    document.querySelector('.install-sub').textContent='點擊查看 Safari 安裝教學';
+  }
+  setTimeout(()=>banner.classList.add('show'),1200);
+}
+function doInstall(){
+  if(_installPrompt){
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(r=>{
+      if(r.outcome==='accepted') dismissInstall();
+      _installPrompt=null;
+    });
+  } else if(_isIOS){
+    dismissInstall();
+    document.getElementById('IOS-GUIDE').style.display='flex';
+  }
+}
+function dismissInstall(){
+  sessionStorage.setItem('install-dismissed','1');
+  const banner=document.getElementById('INSTALL-BANNER');
+  if(banner)banner.classList.remove('show');
+}
+
+// iOS Safari: show after delay if not standalone
+if(_isIOS&&_isSafari&&!_isStandalone&&!_dismissed){
+  showInstallBanner('ios');
+}
+</script>
+</body>
+</html>
